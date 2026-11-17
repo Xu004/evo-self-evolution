@@ -52,9 +52,11 @@ jobs:
           test -f SKILL.md
           head -5 SKILL.md | grep -q '^name:'        || { echo "::error::SKILL.md 缺 name"; exit 1; }
           head -5 SKILL.md | grep -q '^description:' || { echo "::error::SKILL.md 缺 description"; exit 1; }
-          LEN=$(sed -n '3p' SKILL.md | wc -c)
-          echo "description 字节数：$LEN"
-          [ "$LEN" -le 400 ] || { echo "::error::description 超 400 字节上限"; exit 1; }
+          # 口径与 data/cmd/check.sh C5 一致：按字符数（wc -m），不是字节数。
+          # 中文 UTF-8 每字 3 字节；按字节卡会把合规的 190 字符描述算成 471 字节误杀。
+          LEN=$(sed -n '3p' SKILL.md | wc -m)
+          echo "description 字符数：$LEN（上限 400）"
+          [ "$LEN" -le 400 ] || { echo "::error::description 超 400 字符上限"; exit 1; }
 
   snapshot:
     name: build-public + 开箱断言
@@ -84,12 +86,16 @@ jobs:
               exit 1
             fi
           done
-          if grep -rln '/sdcard/Download/Operit' . 2>/dev/null | grep -q .; then
-            echo "::error::产物残留本机绝对路径："
-            grep -rln '/sdcard/Download/Operit' .
+          JL=$(grep -c '^|' data/journal.md 2>/dev/null) || JL=0
+          echo "journal.md 条目标记行：$JL（应为 0）"
+          [ "$JL" -eq 0 ] || { echo "::error::journal.md 非空，禁止分发"; exit 1; }
+          # 只查代码：文档/CHANGELOG 提及历史路径属正常（build-public §5.4 对此仅告警）
+          if grep -rn '/sdcard/Download/Operit' --include='*.sh' --include='evo' --include='*.conf' . 2>/dev/null | grep -q .; then
+            echo "::error::脚本残留本机绝对路径："
+            grep -rn '/sdcard/Download/Operit' --include='*.sh' --include='evo' --include='*.conf' .
             exit 1
           fi
-          echo "零泄漏检查通过"
+          echo "零泄漏检查通过（代码 0 命中 / 账本实体不存在 / journal 空模板）"
 
       - name: 开箱断言（seed → sync → eval → self-test）
         run: |

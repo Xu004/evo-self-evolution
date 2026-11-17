@@ -45,9 +45,10 @@ jobs:
           set -e
           head -5 SKILL.md | grep -q '^name:'        || { echo "frontmatter 缺 name"; exit 1; }
           head -5 SKILL.md | grep -q '^description:' || { echo "frontmatter 缺 description"; exit 1; }
-          LEN=$(sed -n '3p' SKILL.md | wc -c)
-          echo "description 字节数：$LEN"
-          [ "$LEN" -le 400 ] || { echo "description 超 400 字节上限"; exit 1; }
+          # 口径与 data/cmd/check.sh C5 一致：字符数（wc -m），不是字节数
+          LEN=$(sed -n '3p' SKILL.md | wc -m)
+          echo "description 字符数：$LEN（上限 400）"
+          [ "$LEN" -le 400 ] || { echo "description 超 400 字符上限"; exit 1; }
 
   # ─────────────────────────────────────────────────────────
   # 可选门禁：check / adv 需要「本地账本」，在 CI 中必然不完整
