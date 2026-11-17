@@ -1,0 +1,67 @@
+name: release-on-tag
+
+# 触发：推 v* 标签（例：git tag v1.3.1 && git push origin v1.3.1）
+#
+# 为什么用 CI 而不是本地 curl：
+#   本机只有 SSH key（只能 git push），GitHub Release API 不接受 SSH。
+#   runner 自带 GITHUB_TOKEN，发版不需要任何人手上有 PAT。
+#
+# 前置（一次性，只需确认一次）：
+#   仓库 Settings → Actions → General → Workflow permissions
+#   需要是 "Read and write permissions"（否则创建 release 会 403）。
+#   下面的 permissions: contents: write 只能在此前提下生效——
+#   workflow 内声明只能收窄、不能突破仓库默认值。
+#
+# 产物与本地 build-public.sh 同源：同一个脚本、同一个 commit，
+# 因此包内容与本地包一致，仅 tar 的 mtime 不同导致 sha256 不同。
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: build public snapshot → release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # 目录名必须是 EVO自进化：build-public.sh 的注释里写明
+          # check C0b 要求「目录名 == SKILL.md frontmatter name」。
+          path: EVO自进化
+
+      - name: Build public snapshot
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd EVO自进化
+          sh release/build-public.sh /tmp/EVOrel
+          mkdir -p dist
+          tar -czf "dist/EVO自进化-${GITHUB_REF_NAME}.tar.gz" -C /tmp/EVOrel .
+          ( cd dist && sha256sum ./*.tar.gz > SHA256SUMS )
+          echo '── 资产 ──'
+          cat dist/SHA256SUMS
+          echo "── 条目数：$(tar -tzf "dist/EVO自进化-${GITHUB_REF_NAME}.tar.gz" | wc -l) ──"
+          # 双保险：发版前再查一次账本实体目录不得进包
+          if tar -tzf "dist/EVO自进化-${GITHUB_REF_NAME}.tar.gz" | grep -qE '\./data/(store|backup|archive)/'; then
+            echo "✗ 账本目录混入分发包，中止"; exit 1
+          fi
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: EVO ${{ github.ref_name }}
+          body_path: EVO自进化/.github/RELEASE_NOTES.md
+          files: |
+            ${{ github.workspace }}/EVO自进化/dist/*.tar.gz
+            ${{ github.workspace }}/EVO自进化/dist/SHA256SUMS
+          fail_on_unmatched_files: true
+          draft: false
+          prerelease: false
