@@ -45,6 +45,23 @@ else
   ok "I0 注入未执行（canary 未出现）"
 fi
 
+# ---------- A33 --all 位置无关（v0.21）----------
+# 原实现只认 $1；写在后面时 --all 被并进查询词 → 静默降级 Top5 且污染 n。
+# 这个 bug 曾让评测脚本对同一题跑出两个不同 rank，靠它才抓到。
+O1=$(sh "$ROOT/bin/evo" search '坑44' --all 2>&1 | grep -c 'get_memory_by_title')
+O2=$(sh "$ROOT/bin/evo" search --all '坑44' 2>&1 | grep -c 'get_memory_by_title')
+O3=$(sh "$ROOT/bin/evo" search '坑44' 2>&1 | grep -c 'get_memory_by_title')
+if [ "$O1" = "$O2" ] && [ "$O1" != "0" ]; then
+  ok "A33 --all 位置无关（后置=$O1 前置=$O2）"
+else
+  bad "A33 --all 位置影响结果（后置=$O1 前置=$O2）"
+fi
+if [ "$O3" -le 5 ] && [ "$O1" -ge "$O3" ]; then
+  ok "A33b 默认仍为 Top5（默认=$O3 --all=$O1）"
+else
+  bad "A33b 默认 limit 异常（默认=$O3 --all=$O1）"
+fi
+
 # ---------- 主循环 ----------
 N=0
 # fork-ok: 用例必须逐条独立执行——每条要单独捕获退出码与 stdout，合批会丢失单条 rc
@@ -63,7 +80,9 @@ while IFS='|' read -r id cat q rc must forbid; do
   # 写进「; ls /」→ A05 假红。真实账本是会增长的生产数据，不能当测试基线。
   # 新增此类用例只要 rc=3 就自动走夹具；新增「期望 HIT」用例则跑真实账本。
   case "$id:$rc" in
-    A13:*|*:3) IIDX="$ROOT/data/adv-fixture.tsv" ;;
+    # v0.21：A31/A32 断言的是一条**指定夹具条目**（must=夹具），必须隔离到夹具，
+    # 否则真实账本里也有「检查」类词，命中来源不可判定 = 用例测了个寂寞。
+    A13:*|A31:*|A32:*|*:3) IIDX="$ROOT/data/adv-fixture.tsv" ;;
   esac
   q=$(printf '%s' "$q" | sed 's/%PIPE%/|/g')
 

@@ -9,6 +9,14 @@
 - `journal-add` 重写：从写已废弃的 `data/journal.md` 改为写插件账本真身（表式 5 列），默认验证标记改为「未验证」
 - 账本存量修 8 处：`run`/`backup` → `state`、一行两条记录拆行、2 行补验证列、`fix` 纳入枚举
 - 版本控制上线：sdcard 为 FUSE 挂载、无法承载 `.git` 实体，故 `git init --separate-git-dir=/home/evogit`，工作树仍在原目录
+## v0.21 工具线 (2026-11-18 · 检索中文 2-gram + 账本口径评测)
+- **中文长句检索修复**：mawk 的 `length`/`substr` 按**字节**（汉字 3 字节一字），故每 3 字节取 6 字节 = 2 个汉字做 bigram。原实现把「中文长句查询老是搜不到」整串当一个词做子串匹配 → 必然 MISS。纯 ASCII 切片（`route-stats` → rou/te-/sta）跳过；切到半截 UTF-8 的片在完整文本里天然匹配不到，无害。bigram 命中计入覆盖度分母 `(hits+bh)/(n+bn)`，不并入 hits（两个量纲混算会互相稀释）
+- **新增账本口径评测**：此前**完全没有基准**——改评分函数等于凭感觉优化，分不清「变好」和「碰巧」（v1.3 的 Q13 就是这么白干的）。新增 `data/cmd/search-eval.sh` + 注册 `sh bin/evo search-eval`；**双用例集必须同时跑**：`search-evalset.tsv` 真实问法集 20 题（自然语言问句，测真缺陷）+ `search-evalset-simple.tsv` 关键词回归集 20 题（防过拟合）
+- **成绩**：真实问法集 Top1 **2/19 → 17/20**，MRR **0.1053 → 0.8812**，MISS **17 → 1**；关键词回归集 **20/20 不退化**
+- **修 `--all` 位置 bug**：原实现只认 `$1`，调用方写成 `index_search "$Q" --all` 时 `--all` 被并进查询词 → 静默降级 Top5 且污染覆盖度分母 n。评测脚本首版就踩了：同一题两次跑出不同 rank（15/20 与 17/20 的差就是这个）
+- adv 增 A31/A32（bigram 命中夹具，query 与文本**词序不同、无整词重叠**）+ A33/A33b（`--all` 位置无关 / 默认仍 Top5）→ **32 用例 36 断言全绿**；夹具增一行专用条目
+- **已知边界（不可修，记档）**：`提交前要跑哪些检查` 仍 MISS——期望条目正文写「收尾 sync→index→七查」，与用户口语「提交 / 检查」无词面重叠；词面检索不做词义映射。`中文长句查询老是搜不到` 词面零重叠（条目写「必然 MISS」），属语义检索范畴，应走平台 `query_memory`
+
 ## v0.17.1 工具线 (2026-11-16 · 收尾工具 journal-commit)
 - 新增 `data/cmd/journal-commit.sh`，并注册 `sh bin/evo journal-commit`：**mkdir 原子锁 → store sync → index build → 七查自检**，退出码 0 一致 / 1 等锁超时 / 2 违规
 - 幂等自愈（sync 与 index 条数不等自动再跑一轮）；只读校验（绝不改写账本，账本归 `evo_reflect` 专属写域）

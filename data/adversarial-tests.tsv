@@ -41,3 +41,8 @@ A26|coverage|bundle T8|0|hits=2/2|
 A27|contract|zszszszs 不存在词|3|MISS|
 A28|contract||2|FAIL 空查询|
 A29|contract|evo|0|HIT|
+# ---- v0.21 中文 2-gram（bigram）----
+# 关键点：query 与夹具文本**词序不同、无整词重叠**，只有 2 字片段重叠。
+#   这正是「中文长句整串匹配必然 MISS」的修复点，靠 must=夹具 证明命中的是夹具条目。
+A31|bigram|提交前要跑哪些检查|0|夹具|
+A32|bigram|登录和提交都要检查吗|0|夹具|

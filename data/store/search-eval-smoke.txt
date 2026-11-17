@@ -1,0 +1,23 @@
+=== 账本检索评测 · smoke · search-evalset-simple.tsv ===
+rank=1   toolpkg 安装 广播 extras 参数
+rank=1   awk 双文件 NR==FNR 判定
+rank=1   git 仓库 sdcard FUSE
+rank=1   distignore 打包排除清单 pack.sh
+rank=1   检索索引 分域 列设计
+rank=1   评测集期望标题 命名空间 假红
+rank=1   query_memory 域前缀 加权无效
+rank=1   journal-lint 空转 空模板
+rank=1   journal-commit 七查 上线
+rank=1   pkg-lint dataRows 死代码
+rank=1   H17 双轨备份 触发条件
+rank=1   心跳 0 字节 真源失效
+rank=1   H27 完成宣告 门禁
+rank=1   坑44 BEGIN exit END
+rank=1   空查询 标点 覆盖度 七缺陷
+rank=1   对抗测试 固定夹具 生产账本
+rank=1   落账正文 查询词 污染基线
+rank=1   folder 语义双轨 计数轨 检索
+rank=1   SKILL.md C14 上限 14336
+rank=1   route-stats git MRR
+---
+N=20  Top1=20/20  Top3=20/20  Top5=20/20  MISS=0  MRR=1.0000

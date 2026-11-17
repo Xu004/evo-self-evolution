@@ -1,5 +1,5 @@
 #!/bin/sh
-# lib/search.sh · 检索层 v0.19 · 对抗加固版
+# lib/search.sh · 检索层 v0.21 · 对抗加固 + 中文 2-gram
 #
 # 为什么单独一个文件：lib/index.sh 里的 index_search 改名为 index_search_legacy 保留，
 #   出问题一行改回即可（可回退是本项目硬约束，不允许"只能往前"的重构）。
@@ -23,9 +23,18 @@ usage_search() {
 }
 
 index_search() {
+  # v0.21：--all 允许出现在**任意位置**。
+  # 原实现只认 $1，调用方写成 `index_search "$Q" --all` 时 --all 会被并进查询词，
+  # 静默降级成 Top5 且污染 n（评测脚本就踩了：同一题两次跑出不同 rank）。
   LIM=5
-  if [ "${1:-}" = "--all" ]; then LIM=999; shift; fi
-  if [ $# -lt 1 ]; then usage_search; return 2; fi
+  Q=""
+  for _a in "$@"; do
+    if [ "$_a" = "--all" ]; then LIM=999; else Q="$Q $_a"; fi
+  done
+  Q=${Q# }
+  # 只有「真的没传参数」才打用法；空串/纯空白必须走下面的 FAIL 空查询分支
+  # （adv A01/A28 断言的是那条消息，v0.21 改参数解析时踩过一次）
+  [ $# -lt 1 ] && { usage_search; return 2; }
 
   # 索引路径可注入（EVO_INDEX_TSV）：对抗测试 A22 用临时空索引验证 lexicon 展开。
   # 不隔离的话，账本一写进「闪退」这个词，查询就变成真命中，用例假红——
@@ -33,7 +42,6 @@ index_search() {
   IDX="${EVO_INDEX_TSV:-$STORE/index.tsv}"
   [ -f "$IDX" ] || die "索引不存在：先跑 evo store sync && evo index build"
 
-  Q="$*"
   # 全空白 / 空串：明确报错，不伪装成 MISS
   if ! printf '%s' "$Q" | grep -q '[^[:space:]]'; then
     printf 'FAIL 空查询（用法: evo search "<词>"）\n' >&2
@@ -74,6 +82,21 @@ index_search() {
           ID[q2] = isid(q2)
           # 短拉丁词强制边界匹配，否则 "ls" 会在 "Tools" 里命中
           SH[q2] = (!ID[q2] && length(q2) <= 3 && q2 ~ /^[a-z0-9]+$/) ? 1 : 0
+          # v0.21：中文长词切 2-gram。mawk 的 length/substr 按**字节**（汉字 3 字节一字），
+          # 故每 3 字节一格、取 6 字节 = 2 个汉字。原因：中文无空格，
+          # "中文长句查询老是搜不到" 整串当一词时子串匹配必然 MISS（真实问法集实测 17/19 失手）。
+          # 切到半截 UTF-8 字节的片在完整文本里永远匹配不到 —— 天然无害。
+          # 纯 ASCII 切片（route-stats → rou/te-/sta）必是乱码，直接跳过。
+          ln = length(q2)
+          if (ln >= 9) {
+            for (p = 1; p + 5 <= ln; p += 3) {
+              bg = substr(q2, p, 6)
+              if (bg ~ /^[\040-\176]+$/) continue
+              if (bg in BSEEN) continue
+              BSEEN[bg] = 1
+              BIG[++bn] = bg
+            }
+          }
           if (n >= 8) break
         }
         if (n >= 8) break                                    # 词数上限
@@ -85,7 +108,7 @@ index_search() {
     {
       lt = tolower($2); la = tolower($3); lg = tolower($4)
       ls = tolower($5); lv = tolower($8)
-      score = 0; hits = 0
+      score = 0; hits = 0; bh = 0
       for (i = 1; i <= n; i++) {
         k = K[i]; h = 0
         if (ID[k]) {
@@ -107,9 +130,19 @@ index_search() {
         }
         if (h) hits++
       }
-      if (hits == 0) next
+      # v0.21：bigram 命中。不并入 hits（否则 n/bn 混算会互相稀释），
+      # 但并入覆盖度分母 —— 中文长句没有词面重叠、只有片语重叠时也能排上来。
+      if (bn > 0)
+        for (i = 1; i <= bn; i++) {
+          bg = BIG[i]
+          if (index(lt, bg) > 0)      { score += 18; bh++ }
+          else if (index(la, bg) > 0) { score += 12; bh++ }
+          else if (index(lg, bg) > 0) { score += 8;  bh++ }
+          else if (index(ls, bg) > 0) { score += 4;  bh++ }
+        }
+      if (hits == 0 && bh == 0) next
       c++
-      R[c] = score; H[c] = hits; CV[c] = hits / n
+      R[c] = score; H[c] = hits; CV[c] = (n + bn > 0) ? (hits + bh) / (n + bn) : 0; BG[c] = bh
       D[c] = $1; Tt[c] = $2; Ty[c] = $7
     }
     END {
@@ -133,8 +166,8 @@ index_search() {
         }
       k = (c < lim) ? c : lim
       for (i = 1; i <= k; i++)
-        printf "%d. [%s] %s  score=%d hits=%d/%d\n   取: get_memory_by_title(\"%s\")\n", \
-               i, D[i], Tt[i], R[i], H[i], n, Tt[i]
+        printf "%d. [%s] %s  score=%d hits=%d/%d bg=%d/%d\n   取: get_memory_by_title(\"%s\")\n", \
+               i, D[i], Tt[i], R[i], H[i], n, BG[i], bn, Tt[i]
       printf "COUNT %d\n", c
     }' "$IDX")
 

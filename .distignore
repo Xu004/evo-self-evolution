@@ -9,6 +9,9 @@ data/waters.md
 data/route-stats.md
 data/enum-gaps.md
 data/retrieval-evalset.md
+# v0.21：账本口径评测样本（含本机标题片段），与记忆库口径评测集同理不外发
+data/search-evalset.tsv
+data/search-evalset-simple.tsv
 
 # --- 临时验证产物（原 pack.sh 内联 -x，现统一到此）---
 data/enum-*-*.txt

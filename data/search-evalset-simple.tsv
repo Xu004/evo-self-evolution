@@ -1,0 +1,20 @@
+toolpkg 安装 广播 extras 参数	调试安装链路
+awk 双文件 NR==FNR 判定	NR==FNR 双文件判定
+git 仓库 sdcard FUSE	git 仓库位置
+distignore 打包排除清单 pack.sh	.distignore 与 pack.sh 内联
+检索索引 分域 列设计	分域与列设计
+评测集期望标题 命名空间 假红	评测集期望标题取自错误命名空间
+query_memory 域前缀 加权无效	域前缀加权无效
+journal-lint 空转 空模板	journal-lint 空转
+journal-commit 七查 上线	journal-commit 上线
+pkg-lint dataRows 死代码	pkg-lint 建立
+H17 双轨备份 触发条件	H17 双轨备份
+心跳 0 字节 真源失效	心跳文件可读性修复
+H27 完成宣告 门禁	H27 完成宣告门禁上线
+坑44 BEGIN exit END	坑44
+空查询 标点 覆盖度 七缺陷	七缺陷加固
+对抗测试 固定夹具 生产账本	对抗测试必须跑固定夹具
+落账正文 查询词 污染基线	落账正文写进测试查询词
+folder 语义双轨 计数轨 检索	folder 语义双轨
+SKILL.md C14 上限 14336	14336
+route-stats git MRR	route-stats
