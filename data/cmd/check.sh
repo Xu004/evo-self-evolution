@@ -136,7 +136,10 @@ fi
 chk
 SV=""; CV=""
 [ -f SKILL.md ] && SV=$(awk '/^# / { for (i = 1; i <= NF; i++) if ($i ~ /^v[0-9]/) { print $i; exit } }' SKILL.md)
-[ -f CHANGELOG.md ] && CV=$(awk '/^## v[0-9]/ { print $2; exit }' CHANGELOG.md)
+# v1.3.1：原 `print $2` 会把紧跟版本号的全角括号当成版本号的一部分
+# （`## v1.3.1（2026-11-17` 只按空白分字段 → $2 = `v1.3.1（2026-11-17`），
+# 于是 CHANGELOG 写成全角括号时 C4 永远红。改为 match 只截 `v` + 数字点。
+[ -f CHANGELOG.md ] && CV=$(awk '/^## v[0-9]/ { if (match($2, /v[0-9][0-9.]*/)) { print substr($2, RSTART, RLENGTH); exit } }' CHANGELOG.md)
 SVB="${SV%-dev}"; CVB="${CV%-dev}"
 if [ -z "$SV" ] || [ -z "$CV" ]; then
   fail "C4 版本号解析失败（SKILL='$SV' CHANGELOG='$CV'）"
