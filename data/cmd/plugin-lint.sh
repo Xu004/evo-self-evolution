@@ -8,14 +8,19 @@
 # 输出契约（check.sh C6 依赖，勿改）：违规行以 "违规：" 或 "<行号>: " 开头
 # 退出码：0=通过 1=有违规
 # 用法：sh bin/evo plugin-lint [账本路径]
+# 类型枚举唯一真源（与 journal-lint.sh / journal-add.sh 共用，勿在本文件另写一份）
+CONF="$(dirname "$0")/ledger-enum.conf"
+[ -f "$CONF" ] || { echo "违规：ledger-enum.conf 缺失（类型真源）"; exit 1; }
+. "$CONF"
+
 PJ="${1:-/sdcard/Download/Operit/plugins/com.yg.evo/journal.md}"
 [ -f "$PJ" ] || { echo "违规：插件账本不存在（$PJ）"; exit 1; }
 
-awk -F'|' '
+awk -F'|' -v ENUM="$LEDGER_ENUM" '
 function trim(s) { gsub(/^[ \t]+|[ \t]+$/, "", s); return s }
 BEGIN {
-  # 插件侧类型白名单 4 值，与 com.yg.evo manifest / evo_reflect 对齐
-  NV = split("exp rule fail state", V, " ")
+  # 类型白名单：唯一真源 data/cmd/ledger-enum.conf（经 -v ENUM 传入），本文件不写死
+  NV = split(ENUM, V, " ")
   for (i = 1; i <= NV; i++) valid[V[i]] = 1
   n = 0; cnt = 0
 }
@@ -34,7 +39,7 @@ BEGIN {
   if (ts !~ /^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9] [0-9][0-9]:[0-9][0-9]$/)
     bad[++n] = NR": 时间戳格式错（应 YYYY-MM-DD HH:MM）→ "ts
   if (!(kd in valid))
-    bad[++n] = NR": 类型非法（合法: exp/rule/fail/state）→ "kd
+    bad[++n] = NR": 类型非法（合法: " ENUM "，空格分隔）→ " kd
   if (ob == "") bad[++n] = NR": 对象为空"
   if (cc == "") bad[++n] = NR": 结论为空"
   if (vf == "") bad[++n] = NR": 验证为空"

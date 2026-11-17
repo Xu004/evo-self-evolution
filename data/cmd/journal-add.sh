@@ -1,22 +1,46 @@
 #!/bin/sh
-# journal-add.sh · journal 唯一追加入口（v0.15.1 止血，方向①；v0.16.1 加 TS_OVERRIDE）
-# 用法：sh bin/evo journal-add <op> <对象> <内容> [标记]
-# 补记历史动作：TS_OVERRIDE='2026-11-10 06:15' sh bin/evo journal-add pack ...（显式指定实际发生时间）
-# 路径写死 data/journal.md（杜绝靠记忆拼路径写错文件）；时间戳自动生成；内容含 | 拒绝（防破表）
+# journal-add.sh · 插件账本（表式）唯一追加入口 · v1.0
+# 格式：| 时间 | 类型 | 对象 | 结论 | 验证 |   —— 与 plugin-lint.sh / check.sh C6 同源
+# 用法：sh bin/evo journal-add <类型> <对象> <结论> [验证标记]
+# 补记：TS_OVERRIDE='2026-11-10 06:15' sh bin/evo journal-add ...（显式指定实际发生时间）
+# 纪律：
+#   1) 类型枚举取自 data/cmd/ledger-enum.conf，本文件不写死（单一真源）
+#   2) 结论含 | 一律拒绝（防破表）
+#   3) 默认验证标记为「未验证」——没有可核验证据就不许自封 v✅（H 挂账纪律）
+#   4) 只写插件账本（真身）；data/journal.md 已于坑22 废弃，不再写入
 cd "$(dirname "$0")/../.." || exit 1
-J="data/journal.md"
+
+CONF="data/cmd/ledger-enum.conf"
+[ -f "$CONF" ] || { echo "类型真源缺失: $CONF"; exit 1; }
+. "./$CONF"
+
+J="${EVO_PLUGIN_JOURNAL:-/sdcard/Download/Operit/plugins/com.yg.evo/journal.md}"
 [ -f "$J" ] || { echo "账本不存在: $J"; exit 1; }
-OP="$1"; OBJ="$2"; MSG="$3"; MARK="${4:-v✅}"
-[ -n "$OP" ] && [ -n "$OBJ" ] && [ -n "$MSG" ] || { echo "用法: journal-add.sh <op> <对象> <内容> [标记]"; exit 1; }
-echo "$MSG" | grep -q '|' && { echo "内容含 | 会破坏表结构，请改用·"; exit 1; }
-case "$OP" in
-  create|update|fix|move|pack|copy|verify|backup|enum|route|run|delete|link|eval|refactor|H1-violation) ;;
-  *) echo "非法 op: $OP（合法: create/update/fix/move/pack/copy/verify/backup/enum/route/run/delete/link/eval/refactor/H1-violation）"; exit 1 ;;
+
+OP="$1"
+OBJ="$2"
+MSG="$3"
+MARK="${4:-未验证}"
+
+[ -n "$OP" ] && [ -n "$OBJ" ] && [ -n "$MSG" ] || {
+    echo "用法: journal-add.sh <类型> <对象> <结论> [验证标记]"
+    echo "可用类型: $LEDGER_ENUM"
+    exit 1
+}
+
+case " $LEDGER_ENUM " in
+    *" $OP "*) ;;
+    *) echo "非法类型: $OP（合法: $LEDGER_ENUM）"; exit 1 ;;
 esac
-if [ -n "$TS_OVERRIDE" ]; then
-  TS="$TS_OVERRIDE"
+
+echo "$MSG" | grep -q '|' && { echo "结论含 | 会破坏表结构，请改用 ·"; exit 1; }
+
+if [ -n "${TS_OVERRIDE:-}" ]; then
+    TS="$TS_OVERRIDE"
 else
-  TS=$(date -u -d "@$(( $(date +%s) + 28800 ))" '+%Y-%m-%d %H:%M')
+    TS=$(TZ=Asia/Shanghai date '+%Y-%m-%d %H:%M')
 fi
-echo "$OP | $OBJ | $TS | $MSG | $MARK" >> "$J"
-echo "已落账，尾行："; tail -1 "$J"
+
+printf '| %s | %s | %s | %s | %s |\n' "$TS" "$OP" "$OBJ" "$MSG" "$MARK" >> "$J"
+echo "已落账，尾行："
+tail -1 "$J"

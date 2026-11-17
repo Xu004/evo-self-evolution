@@ -91,7 +91,9 @@ else
   # 不是本仓撰写的文本，故与历史三件同等豁免；豁免范围必须写在这里，不许宽化成「data/ 全豁免」。
   # v1.1：data/store/ 是账本正文的派生镜像（C 档引擎产出），同样是「数据的镜像」而非本仓文本，
   # 且已在 .distignore 中排除、不进分发包，属运行期数据，不参与命名残留扫描。
-  RESID=$(grep -rl "$BAD" . 2>/dev/null | grep -vE '\./(journal\.md|data/journal\.md|data/waters\.md|data/route-cache\.md|data/memory-index\.md|data/memory-titles\.txt|CHANGELOG\.md|VERSION_HISTORY\.md)$|^\./data/store/')
+  # v1.2：data/backup/ 是账本与 waters 的历史快照（H17 双轨产物），逐字复制历史行，
+  # 必然携带历史用词，性质等同 data/store/ 的镜像，不参与扫描；豁免精确到目录，不宽化。
+  RESID=$(grep -rl "$BAD" . 2>/dev/null | grep -vE '\./(journal\.md|data/journal\.md|data/waters\.md|data/route-cache\.md|data/memory-index\.md|data/memory-titles\.txt|CHANGELOG\.md|VERSION_HISTORY\.md)$|^\./data/(store|backup)/')
   if [ -n "$RESID" ]; then
     fail "C1 更名残留（$BAD）在活动文件：$(echo "$RESID" | tr '\n' ' ')"
   else
