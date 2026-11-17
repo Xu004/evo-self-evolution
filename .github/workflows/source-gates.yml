@@ -113,7 +113,8 @@ jobs:
           OUT=$(sh bin/evo search-eval example 2>&1 || true)
           echo "$OUT" | tail -4
           if ! echo "$OUT" | grep -q 'Top1=8/10'; then
-            echo "::error::成绩与文档不符（文档承诺 Top1=8/10）"
+            ACT=$(echo "$OUT" | grep -E '^N=' | tail -1)
+            echo "::error::成绩漂移｜实际：${ACT:-<无 N= 行>}｜文档承诺：N=10 Top1=8/10 MRR=0.8500"
             exit 1
           fi
 
