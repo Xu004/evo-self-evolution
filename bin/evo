@@ -1,0 +1,70 @@
+#!/bin/sh
+# bin/evo · EVO 自进化引擎统一入口（C 档 Step1）
+#
+# 设计原则：
+#   1. 单一事实源：插件账本(journal.md) → data/store/journal.tsv → index.tsv，单向派生
+#   2. 零人工同步：索引不再依赖 memory-titles.txt 手工清单
+#   3. 引擎无状态：data/store/ 可随时删除，从账本重建
+#
+# 用法: evo <命令> [参数]
+#   version            打印版本与根路径
+#   store sync         账本 → data/store/journal.tsv（幂等）
+#   store show [n]     查看结构化账本（默认 10 条）
+#   index build        journal.tsv → index.tsv
+#   index stats        分域统计
+#   index check        结构 + 新鲜度校验（门禁 C12 复用）
+#   search "<词>"      加权检索（HIT n rc=0 / MISS rc=3）
+#   lint               表式账本校验（类型/空字段）
+
+set -u
+ROOT=$(cd "$(dirname "$0")/.." && pwd) || exit 90
+. "$ROOT/lib/common.sh"
+. "$ROOT/lib/store.sh"
+. "$ROOT/lib/index.sh"
+
+usage() {
+  # 坑41：禁止硬编码行号（文件一改就漂）——从 "# 用法:" 取到 set -u 之前
+  awk '/^# 用法:/{f=1} /^set -u/{exit} f' "$0" | sed 's/^# \{0,1\}//'
+}
+
+CMD=${1:-help}
+[ $# -gt 0 ] && shift
+
+case $CMD in
+  version)
+    echo "evo engine step1"
+    echo "root = $ROOT"
+    echo "journal = $(evo_journal)"
+    ;;
+  store)
+    case ${1:-} in
+      sync)  store_sync ;;
+      show)  shift; store_show "${1:-10}" ;;
+      *)     usage; exit 2 ;;
+    esac
+    ;;
+  index)
+    case ${1:-} in
+      build) index_build ;;
+      stats) index_stats ;;
+      check) index_check ;;
+      *)     usage; exit 2 ;;
+    esac
+    ;;
+  search) index_search "$@" ;;
+  lint)   journal_lint ;;
+  # ---- v1.1 脚本收敛入口：evo <脚本名> [参数] ----
+  # 统一入口，向后兼容（sh data/cmd/<名>.sh 仍可用）。脚本实现不变，只收口调用面。
+  # 例：evo check --fast ／ evo pack ／ evo eval report ／ evo journal-add create X Y
+  check|pack|dist|eval|refactor|verify|enum_merge|rotate-journal|bridge-journal|plugin-lint|journal-lint|journal-add|journal-commit|route-cache|lexicon)
+    _s="data/cmd/$CMD.sh"
+    [ -f "$_s" ] || { echo "无此脚本: $_s" >&2; exit 2; }
+    exec sh "$_s" "$@"
+    ;;
+  route)   exec sh data/cmd/route-cache.sh "$@" ;;
+  enum)    exec sh data/cmd/enum_merge.sh "$@" ;;
+  rotate)  exec sh data/cmd/rotate-journal.sh "$@" ;;
+  bridge)  exec sh data/cmd/bridge-journal.sh "$@" ;;
+  journal) exec sh data/cmd/journal-add.sh "$@" ;;
+  *)      usage; exit 2 ;;
+esac

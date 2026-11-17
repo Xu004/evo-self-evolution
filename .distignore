@@ -1,0 +1,50 @@
+# EVO 分发包排除清单（pack.sh 读取；单一真相源）
+# 语法：每行一个相对 EVO/ 的 glob；# 开头为注释；空行忽略
+# 原则：只排「本机运行期账本 / 状态水位 / 评测样本 / 系统垃圾」
+#       绝不排 SKILL.md 引用的资产（templates/ data/playbook/ data/cmd/）
+
+# --- 运行期账本：含绝对路径 / 项目名 / 事故史 / 决策原话，分发即泄露 ---
+data/journal.md
+data/waters.md
+data/route-stats.md
+data/enum-gaps.md
+data/retrieval-evalset.md
+
+# --- 临时验证产物（原 pack.sh 内联 -x，现统一到此）---
+data/enum-*-*.txt
+data/expect-*
+data/actual-*
+# --- v0.16.4 会话级易失缓存（本机检索现场，分发即噪音；且含项目名/标题清单）---
+data/route-cache.md
+data/eval-runs/*
+# v0.16.7 修：原来写 `data/eval-runs/`，case/zip -x 的 pattern 以 `/` 结尾时匹配不到
+# `data/eval-runs/xxx`（只匹配目录本身），等于排除失效 —— 账本目录会随包外发。
+
+# --- 打包产物自身（产物落点必须排除，否则 zip 自包含 → 体积逐轮漂移永不收敛）---
+# v0.16.7：改通配，开发态 EVO.zip 与分发态 EVO自进化.zip 共用同一份排除清单
+*.zip
+
+# --- v0.16.5 枚举快照（标题原文已进 memory-index.md，快照本身是本机现场）---
+data/memory-titles.txt
+data/idx-*.txt
+
+# --- 系统垃圾 ---
+.DS_Store
+*.swp
+*~
+# --- v0.16.6 结构性检现场（报告与草案属本机，不入分发包）---
+data/refactor-report.md
+data/patches/*
+# --- v0.16.7 开发全链（52KB 事故史/决策原话；分发版由 dist.sh 生成精简 CHANGELOG）---
+VERSION_HISTORY.md
+# --- v1.1 本机数据一律不进包（已物理移出到 skills/.evo-private）---
+data/journal.mirror.md
+data/refactor-report.md
+data/cmd/*.bak*
+data/patches/*
+*.zip
+*.zip.bak*
+*.bak-*
+data/store/*
+# v1.0.3 2026-11-17：本机备份目录（含真实账本快照与清理台账）不随包外发
+data/backup/*

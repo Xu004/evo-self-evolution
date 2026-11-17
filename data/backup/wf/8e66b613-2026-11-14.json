@@ -1,0 +1,126 @@
+{
+    "id": "8e66b613-d523-45cd-8e48-d0994e59d0a8",
+    "name": "一次性定时任务 2026-11-14 03:00",
+    "description": "一次性定时任务，触发时间 2026-11-14 03:00",
+    "nodes": [
+        {
+            "__type": "com.ai.assistance.operit.data.model.TriggerNode",
+            "id": "trigger_1794530725487",
+            "name": "定时触发",
+            "description": "一次性定时触发",
+            "triggerType": "schedule",
+            "triggerConfig": {
+                "schedule_type": "specific_time",
+                "specific_time": "2026-11-14 03:00",
+                "repeat": "false",
+                "enabled": "true"
+            }
+        },
+        {
+            "__type": "com.ai.assistance.operit.data.model.ExecuteNode",
+            "id": "start_1794530725487",
+            "name": "启动对话服务",
+            "description": "启动对话服务以便发送消息",
+            "position": {
+                "x": 260.0
+            },
+            "actionType": "start_chat_service",
+            "actionConfig": {
+                "initial_mode": {
+                    "__type": "com.ai.assistance.operit.data.model.ParameterValue.StaticValue",
+                    "value": "BALL"
+                },
+                "keep_if_exists": {
+                    "__type": "com.ai.assistance.operit.data.model.ParameterValue.StaticValue",
+                    "value": "true"
+                }
+            }
+        },
+        {
+            "__type": "com.ai.assistance.operit.data.model.ExecuteNode",
+            "id": "send_1794530725487",
+            "name": "唤醒AI",
+            "description": "向对话发送唤醒消息，触发AI执行任务",
+            "position": {
+                "x": 520.0
+            },
+            "actionType": "send_message_to_ai",
+            "actionConfig": {
+                "message": {
+                    "__type": "com.ai.assistance.operit.data.model.ParameterValue.StaticValue",
+                    "value": "【EVO autoDream 定时唤醒 11-14 03:00】按 SKILL.md L4 执行六阶段夜间整合：①读「时钟:autoDream」条目比对 last_dream（应=2026-11-13 或更晚）②六阶段：冗余扫描/同场景合并/失效标记/索引一致性/链接噪音抽查/简报 ≤200 字写入「自进化状态」简报段 ③更新「时钟:autoDream」last_dream=2026-11-14 03:00 + complete=true + alarm_landed 追加 11-14 ④水位回读比对并同步 data/waters.md ⑤sh data/cmd/journal-add.sh run autoDream 记录本轮到账 + sh data/cmd/journal-lint.sh 六查 ⑥立即重排 2026-11-15 03:00 一次性任务（daily_life schedule_one_time_task，workflow 包三个历史任务全 FAILED 已弃用）。异常：若本消息未在 03:10 前落地，次日由 alarm_landed ❌ 记账，连续 2 次按 H16 降级为被动通道。注意：编排路径一律用英文路径 /sdcard/Download/Operit/skills/EVO，中文路径会触发 read_file「工具结果缺失」误报。\n[定时触发:2026-11-14 03:00]\n[Scheduled Trigger:2026-11-14 03:00]"
+                },
+                "chat_id": {
+                    "__type": "com.ai.assistance.operit.data.model.ParameterValue.StaticValue",
+                    "value": "f5fc5ab2-efd4-4d7d-8095-732126ef6f48"
+                },
+                "hide_user_message": {
+                    "__type": "com.ai.assistance.operit.data.model.ParameterValue.StaticValue",
+                    "value": "true"
+                },
+                "notify_reply": {
+                    "__type": "com.ai.assistance.operit.data.model.ParameterValue.StaticValue",
+                    "value": "true"
+                },
+                "persist_turn": {
+                    "__type": "com.ai.assistance.operit.data.model.ParameterValue.StaticValue",
+                    "value": "true"
+                },
+                "disable_warning": {
+                    "__type": "com.ai.assistance.operit.data.model.ParameterValue.StaticValue",
+                    "value": "false"
+                },
+                "role_card_id": {
+                    "__type": "com.ai.assistance.operit.data.model.ParameterValue.StaticValue",
+                    "value": "2ec00e37-336b-4dee-b136-af80bd7ba29f"
+                },
+                "sender_name": {
+                    "__type": "com.ai.assistance.operit.data.model.ParameterValue.StaticValue",
+                    "value": "程序"
+                }
+            }
+        },
+        {
+            "__type": "com.ai.assistance.operit.data.model.ExecuteNode",
+            "id": "delete_1794530725487",
+            "name": "删除工作流",
+            "description": "执行后删除自己",
+            "position": {
+                "x": 1040.0
+            },
+            "actionType": "delete_workflow",
+            "actionConfig": {
+                "workflow_id": {
+                    "__type": "com.ai.assistance.operit.data.model.ParameterValue.StaticValue",
+                    "value": "8e66b613-d523-45cd-8e48-d0994e59d0a8"
+                }
+            }
+        }
+    ],
+    "connections": [
+        {
+            "id": "1a96a2db-48e8-438c-8082-4d3d2c8f2fa8",
+            "sourceNodeId": "trigger_1794530725487",
+            "targetNodeId": "start_1794530725487",
+            "condition": "on_success"
+        },
+        {
+            "id": "cc9e304c-71ae-4dfb-92b6-ba2949e3ae5f",
+            "sourceNodeId": "start_1794530725487",
+            "targetNodeId": "send_1794530725487",
+            "condition": "on_success"
+        },
+        {
+            "id": "4941b953-9a5f-4b09-b0e3-ba9c9213b447",
+            "sourceNodeId": "send_1794530725487",
+            "targetNodeId": "delete_1794530725487",
+            "condition": "on_success"
+        }
+    ],
+    "createdAt": 1794530725447,
+    "updatedAt": 1794530725496,
+    "lastExecutionTime": 1794609672947,
+    "lastExecutionStatus": "FAILED",
+    "totalExecutions": 1,
+    "failedExecutions": 1
+}

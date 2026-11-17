@@ -1,0 +1,20 @@
+# 运行期产物（每日生成，不纳入版本）
+data/heartbeat/
+data/eval-runs/
+data/route-cache.md
+data/route-stats.md
+data/status.md
+data/waters.md
+data/.dist
+
+# 一次性补丁脚本（必须转正到 data/cmd/ 或删除，禁止进库）
+data/.*.py
+data/*-1117.py
+
+# 二进制与冷备
+*.zip
+data/backup/*.zip
+
+# 系统垃圾
+.DS_Store
+Thumbs.db
