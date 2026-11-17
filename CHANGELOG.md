@@ -1,4 +1,12 @@
 # CHANGELOG · EVO自进化
+## v1.3.1（2026-11-17 · 检索静默失效修复：awk=gawk 5.x）
+- **根因**：`lib/search.sh` 的中文 2-gram 依赖 awk 的**字节**语义（汉字 3 字节，步长 3、取 6 字节 = 2 个汉字）。Ubuntu 26 起 `ubuntu-latest` 的 `awk` 指向 **gawk 5.3**（UTF-8 locale 下 `length/substr` 按**字符**），切片与索引里的 2 汉字对不上 → 中文长句查询 **100% MISS**，退出码/日志无任何异常（静默失效）。本机 `awk=mawk` 一直是好的，所以从未暴露
+- **触发条件**：`ubuntu-latest` 自 2026-10-19 起迁移 Ubuntu 26；CI 首跑即 `Top1 8/10 → 0/10`（13 题全 MISS，`index.tsv` 10 行正常）
+- **修复**：`lib/common.sh` 新增 `awkb() { LC_ALL=C awk "$@"; }`；`lib/search.sh`(3) / `lib/index.sh`(5) / `data/cmd/search-eval.sh`(2) 统一走 `awkb`。`LC_ALL=C` 强制字节模式，gawk / mawk / busybox awk 行为回归一致
+- **验证**：本机装 gawk 5.2.1 并 `PATH` 前置 → `N=20 Top1=17/20 MRR=0.8812`，与 mawk 完全一致；CI 开箱 B 改为**双实现断言**（默认 awk + mawk，两边都必须 `Top1=8/10`）
+- **影响面**：仅检索精度，数据无损，`index build` 无需重建；回滚 = `git revert` 本提交
+- **教训**：`awk` 不是「一个东西」，是三个实现（mawk / gawk / busybox）。依赖字节语义的代码必须显式 `LC_ALL=C`，且 CI 要用两种实现各跑一遍——单实现 CI 会给出假绿
+
 ## v1.3 (2026-11-17 · 平台整合适配 + purge 归档止漏 + 存量清理)
 - H25/H26 入库：平台上下文总结参数（`summary_message_count_threshold=16` 等）视为**外部固定条件**，EVO 侧改走「单轮 12 条消息预算 + 第 4 条前首批落盘」；每轮进入先跑重入协议四步，真源优先级 = 心跳文件 > 记忆条目 > 上下文
 - purge 归档止漏：`archiveFoldedToMemory()` 在 `dist/main.js` 内短路（`return;/*dsh1:no-memory-archive*/`），`folderPath` 改 `'dsh-purge'` → 发布 v1.0.3（86813B，装机缓存两处标记各 1 命中）

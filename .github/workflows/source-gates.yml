@@ -106,23 +106,32 @@ jobs:
           sh bin/evo store sync   | tee /tmp/sync.log
           sh bin/evo index build  | tee /tmp/index.log
 
-      - name: 开箱 B · search-eval 断言（Top1=8/10）
+      - name: 开箱 B · search-eval 断言（Top1=8/10，gawk + mawk 双实现）
         run: |
           set -eu
           cd "$RUNNER_TEMP/EVO-public"
-          # 项目口径 = mawk。CI 的 awk 在 Ubuntu26 起指向 gawk 5.3，
-          # 会把中文 2-gram 检索打到全 0 命中 → 这里把 mawk 放到 PATH 最前。
-          mkdir -p /tmp/awkfirst
-          ln -sf "$(command -v mawk)" /tmp/awkfirst/awk
-          export PATH="/tmp/awkfirst:$PATH"
-          echo "awk -> $(command -v awk) | $(awk -W version 2>&1 | head -1)"
-          OUT=$(sh bin/evo search-eval example 2>&1 || true)
-          echo "$OUT" | tail -4
-          if ! echo "$OUT" | grep -q 'Top1=8/10'; then
-            ACT=$(echo "$OUT" | grep -E '^N=' | tail -1)
-            echo "::error::仍然漂移（mawk 已置于 PATH 首位）：$ACT"
-            exit 1
-          fi
+          # 回归：lib/search.sh 的中文 2-gram 依赖 awk 的**字节**语义。
+          # Ubuntu26 起 ubuntu-latest 的 awk = gawk 5.3（UTF-8 locale 下 length/substr 按字符），
+          # 曾导致中文长句查询 100% MISS 且无任何报错。awkb() 用 LC_ALL=C 固定字节语义，
+          # 这里对「默认 awk」与「mawk」双跑，两边都必须 8/10 且一致。
+          for A in default mawk; do
+            if [ "$A" = "mawk" ]; then
+              mkdir -p /tmp/awkfirst
+              ln -sf "$(command -v mawk)" /tmp/awkfirst/awk
+              P="/tmp/awkfirst:$PATH"
+            else
+              P="$PATH"
+            fi
+            echo "[$A] awk -> $(PATH="$P" command -v awk) | $(PATH="$P" awk -W version 2>&1 | head -1)"
+            OUTx=$(PATH="$P" sh bin/evo search-eval example 2>&1 || true)
+            LINE=$(echo "$OUTx" | grep -E '^N=' | tail -1)
+            echo "[$A] $LINE"
+            if ! echo "$LINE" | grep -q 'Top1=8/10'; then
+              echo "::error::[$A] 检索漂移：$LINE"
+              exit 1
+            fi
+          done
+          echo "双实现一致：默认 awk 与 mawk 均为 Top1=8/10"
 
       - name: 开箱 C · self-test 断言（FAIL=0）
         run: |

@@ -49,7 +49,7 @@ while IFS= read -r LINE <&3 || [ -n "${LINE:-}" ]; do
   [ "$EXP" = "$Q" ] && continue   # 无 TAB 行，跳过
 
   OUT=$(index_search --all "$Q" 2>/dev/null)
-  RANK=$(printf '%s\n' "$OUT" | awk -v e="$EXP" '
+  RANK=$(printf '%s\n' "$OUT" | awkb -v e="$EXP" '
     /^[0-9]+\./ { if (index($0, e) > 0) { split($1, a, "."); print a[1]; exit } }')
   RANK=${RANK:-0}
 
@@ -64,7 +64,7 @@ while IFS= read -r LINE <&3 || [ -n "${LINE:-}" ]; do
   printf 'rank=%-2s  %s\n' "$RANK" "$Q" >> "$REP"
 done 3< "$ES"
 
-MRR=$(awk '
+MRR=$(awkb '
   /^rank=/ { r = substr($0, 6) + 0; if (r > 0) s += 1 / r; n++ }
   END { printf "%.4f", (n > 0) ? s / n : 0 }' "$REP")
 

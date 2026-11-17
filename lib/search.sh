@@ -48,7 +48,7 @@ index_search() {
     return 2
   fi
 
-  OUT=$(awk -F'\t' -v q="$Q" -v lim="$LIM" '
+  OUT=$(awkb -F'\t' -v q="$Q" -v lim="$LIM" '
     function isid(w) {
       # 编号形态：H21 / C13 / R07 / T3b / T8 / 坑43
       if (w ~ /^[a-z]{1,4}[0-9]{1,4}[a-z]?$/) return 1
@@ -171,7 +171,7 @@ index_search() {
       printf "COUNT %d\n", c
     }' "$IDX")
 
-  CNT=$(printf '%s\n' "$OUT" | awk '/^COUNT /{print $2}')
+  CNT=$(printf '%s\n' "$OUT" | awkb '/^COUNT /{print $2}')
   CNT=${CNT:-0}
 
   if [ "$CNT" = "-1" ]; then
@@ -187,7 +187,7 @@ index_search() {
 
   # ---- MISS：自动 lexicon 展开，把「接下来该干嘛」直接给成可执行参数 ----
   printf 'MISS（%s）\n' "$Q"
-  FW=$(printf '%s' "$Q" | awk '{print $1}')
+  FW=$(printf '%s' "$Q" | awkb '{print $1}')
   if [ -f "$ROOT/data/query-lexicon.md" ]; then
     LGX=$(sh "$ROOT/data/cmd/lexicon.sh" "$FW" 2>/dev/null | head -1)
     case "$LGX" in

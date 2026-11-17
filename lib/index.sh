@@ -72,9 +72,9 @@ index_search_legacy() {
     case $1 in *[[:space:]]*) set -- $1 ;; esac
   fi
 
-  KWS=$(printf '%s\n' "$@" | awk 'NF { print tolower($0) }')
+  KWS=$(printf '%s\n' "$@" | awkb 'NF { print tolower($0) }')
 
-  OUT=$(awk -F'\t' -v kws="$KWS" '
+  OUT=$(awkb -F'\t' -v kws="$KWS" '
     BEGIN {
       m = split(kws, T, "\n"); n = 0
       for (i = 1; i <= m; i++) {
@@ -120,7 +120,7 @@ index_search_legacy() {
       printf "COUNT %d\n", c + 0
     }' "$STORE/index.tsv")
 
-  CNT=$(printf '%s\n' "$OUT" | tail -1 | awk '{ print $2 + 0 }')
+  CNT=$(printf '%s\n' "$OUT" | tail -1 | awkb '{ print $2 + 0 }')
   if [ "${CNT:-0}" -gt 0 ]; then
     printf '%s\n' "$OUT" | sed '$d'
     echo "HIT $CNT（$*）"
@@ -138,7 +138,7 @@ index_check() {
   local idx="$STORE/index.tsv" jtv="$STORE/journal.tsv"
   [ -f "$idx" ] || { echo "无索引（未 build）"; return 4; }
   local ST
-  ST=$(awk -F'\t' '
+  ST=$(awkb -F'\t' '
     NR==1 && ($2=="title" || $1=="domain") {next}
     NF==0 {next}
     { n++; if (NF!=8) bad++ }
@@ -148,7 +148,7 @@ index_check() {
   [ "$BAD" = "0" ] || { echo "列数异常 ${BAD} 行（应为 8 列）"; return 5; }
   local JN=0
   if [ -f "$jtv" ]; then
-    JN=$(awk -F'\t' 'NR==1 && ($2=="title" || $1=="type") {next} NF==0 {next} {n++} END{print n+0}' "$jtv")
+    JN=$(awkb -F'\t' 'NR==1 && ($2=="title" || $1=="type") {next} NF==0 {next} {n++} END{print n+0}' "$jtv")
   fi
   # journal.tsv 缺失（分发态空账本）→ 只做结构校验
   if [ "$JN" != "0" ] && [ "$IN" != "$JN" ]; then

@@ -49,3 +49,14 @@ store_tmp() {
 store_commit() { mv -f "$1" "$2" || die "写入失败: $2"; }
 
 now_str() { date '+%Y-%m-%d %H:%M'; }
+
+# ---- awk 口径（v1.1.1 修，2026-11）----
+# 为什么必须有 awkb：`awk` 在不同发行版指向不同实现。
+#   Ubuntu 24 = mawk（length/substr 按**字节**）
+#   Ubuntu 26 起 ubuntu-latest = gawk 5.3（UTF-8 locale 下按**字符**）
+# lib/search.sh 的中文 2-gram 依赖字节语义（汉字 3 字节，每步取 6 字节 = 2 个汉字）。
+# 在 gawk 下变成「取 6 个字符」，切片与索引里的 2 汉字对不上 → 中文长句查询 100% MISS。
+# 2026-11 CI 实测：Top1 8/10 → 0/10，13 题全 MISS，退出码与日志没有任何异常（静默失效）。
+# 修法：LC_ALL=C 强制字节模式，gawk / mawk / busybox awk 行为回归一致。
+# 约定：检索链路（lib/search.sh、lib/index.sh、data/cmd/search-eval.sh）的 awk 一律走 awkb。
+awkb() { LC_ALL=C awk "$@"; }
