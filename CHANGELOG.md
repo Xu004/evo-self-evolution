@@ -19,7 +19,7 @@
 - **开箱缺陷修复 · 账本三级解析**：构建期把默认值改写为 `${EVO_HOME:-$HOME/.evo}` 是对的，但公开快照没有宿主插件目录 → clone 后第一条 `evo store sync` 报「账本不存在: /root/.evo/journal.md」，且报错会把用户引向「插件未装」的错误结论。`lib/common.sh` 的 `evo_journal()` 改为三级：`EVO_JOURNAL` → 宿主插件目录 → **包内 `data/journal.md`**；另给 5 个绕过该函数、各自复制默认值的脚本（`journal-add` / `check` / `status` / `bridge-journal` / `plugin-lint`）补同构回退，**仅在用户未显式指定时生效**，开发态真账本存在则此块不动
 - **CI 改真开箱**：`smoke` job 删掉 `export EVO_JOURNAL="$PWD/data/journal.md"` —— 那行正好把上述缺陷盖住（本地能跑、clone 就坏）。现在不设任何环境变量跑 seed → sync → index → eval，再 `grep 'Top1=8/10'`。README 同步删掉 `export`，补三级解析表与「第 3 级不是可选项」；`PUBLISHING.md` checklist 增「公开快照开箱验证」回归哨
 - **`build-public.sh --force`**：发布是高频动作，原「目标已存在即拒跑」逼人手动 `rm -rf`（手滑风险）。改受控 `--force`，守卫「仅允许删 `*/EVO-public*` 且非 `/`、`$HOME`、`.`、`..`」。首版踩了参数解析坑：`OUT=${1:-...}` 把 `--force` 当目录名 → `mkdir: unrecognized option '--force/data'`；修成 `FORCE` 与 `OUT` 两个变量分别解析
-- **公开包终态**：**60 文件 / 475K** · `self-test` **30 / 0 / 3**（30 = 归档 7 个 py 后的项数）· `store sync` 10 条 · `search-eval example` **Top1 8/10 · MRR 0.8500**（与文档逐字一致）
+- **公开包终态**：**60 文件 / 479K** · `self-test` **30 / 0 / 3**（30 = 归档 7 个 py 后的项数）· `store sync` 10 条 · `search-eval example` **Top1 8/10 · MRR 0.8500**（与文档逐字一致）
 ## v0.21 工具线 (2026-11-18 · 检索中文 2-gram + 账本口径评测)
 - **中文长句检索修复**：mawk 的 `length`/`substr` 按**字节**（汉字 3 字节一字），故每 3 字节取 6 字节 = 2 个汉字做 bigram。原实现把「中文长句查询老是搜不到」整串当一个词做子串匹配 → 必然 MISS。纯 ASCII 切片（`route-stats` → rou/te-/sta）跳过；切到半截 UTF-8 的片在完整文本里天然匹配不到，无害。bigram 命中计入覆盖度分母 `(hits+bh)/(n+bn)`，不并入 hits（两个量纲混算会互相稀释）
 - **新增账本口径评测**：此前**完全没有基准**——改评分函数等于凭感觉优化，分不清「变好」和「碰巧」（v1.3 的 Q13 就是这么白干的）。新增 `data/cmd/search-eval.sh` + 注册 `sh bin/evo search-eval`；**双用例集必须同时跑**：`search-evalset.tsv` 真实问法集 20 题（自然语言问句，测真缺陷）+ `search-evalset-simple.tsv` 关键词回归集 20 题（防过拟合）
