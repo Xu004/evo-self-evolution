@@ -165,6 +165,14 @@ fi
 na() { TOTAL=$((TOTAL - 1)); SKIPPED=$((SKIPPED + 1)); echo "n/a   $*"; }
 chk
 PJ="${EVO_PLUGIN_JOURNAL:-/sdcard/Download/Operit/plugins/com.yg.evo/journal.md}"
+# 公开快照/本地克隆：宿主插件目录不存在时回落到包内账本 data/journal.md
+# （仅当用户未显式指定时生效；开发态真账本存在则此块不动）
+if [ -z "${EVO_PLUGIN_JOURNAL:-}" ] && [ ! -f "$PJ" ]; then
+  _r=$(cd "$(dirname "$0")/../.." 2>/dev/null && pwd)
+  [ -f "$_r/data/journal.md" ] && PJ="$_r/data/journal.md"
+  :
+fi
+
 PJ_ROWS=0
 [ -f "$PJ" ] && PJ_ROWS=$(grep -cE '^[|][[:space:]]*[0-9][0-9][0-9][0-9]-' "$PJ" 2>/dev/null | head -1)
 PJ_ROWS=${PJ_ROWS:-0}

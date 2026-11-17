@@ -15,6 +15,14 @@ CONF="data/cmd/ledger-enum.conf"
 . "./$CONF"
 
 J="${EVO_PLUGIN_JOURNAL:-/sdcard/Download/Operit/plugins/com.yg.evo/journal.md}"
+# 公开快照/本地克隆：宿主插件目录不存在时回落到包内账本 data/journal.md
+# （仅当用户未显式指定时生效；开发态真账本存在则此块不动）
+if [ -z "${EVO_PLUGIN_JOURNAL:-}" ] && [ ! -f "$J" ]; then
+  _r=$(cd "$(dirname "$0")/../.." 2>/dev/null && pwd)
+  [ -f "$_r/data/journal.md" ] && J="$_r/data/journal.md"
+  :
+fi
+
 [ -f "$J" ] || { echo "账本不存在: $J"; exit 1; }
 
 OP="$1"

@@ -8,6 +8,14 @@
 # 用法：sh bin/evo bridge-journal [插件账本路径]
 # 注：本脚本只读插件账本，绝不写它；镜像方向永远是 插件 → skill。
 PJ="${1:-/sdcard/Download/Operit/plugins/com.yg.evo/journal.md}"
+# 公开快照/本地克隆：宿主插件目录不存在时回落到包内账本 data/journal.md
+# （仅当用户未显式指定时生效；开发态真账本存在则此块不动）
+if [ $# -eq 0 ] && [ ! -f "$PJ" ]; then
+  _r=$(cd "$(dirname "$0")/../.." 2>/dev/null && pwd)
+  [ -f "$_r/data/journal.md" ] && PJ="$_r/data/journal.md"
+  :
+fi
+
 cd "$(dirname "$0")/../.." || exit 1
 PRIV=${EVO_PRIVATE_DIR:-$(cd "$(dirname "$0")/../../.." && pwd)/.evo-private}
 mkdir -p "$PRIV" 2>/dev/null

@@ -26,7 +26,17 @@ SRC=$(cd "$(dirname "$0")/.." && pwd)
 
 # 公开快照不能放在 skills/ 下 —— check 的 C0 会把它当成第二个 skill（双真身）。
 # 默认落到 skills/ 的上三层（即 /sdcard/Download）旁的兄弟目录。
-OUT=${1:-"$(cd "$SRC/../../.." && pwd)/EVO-public"}
+# --force 必须与输出路径分家：早先直接把 $1 当 OUT，`build-public.sh --force`
+# 会把 "--force" 当成目标目录名 → mkdir: unrecognized option '--force/data'。
+FORCE=0
+OUT=""
+for a in "$@"; do
+  case "$a" in
+    --force) FORCE=1 ;;
+    *) OUT="$a" ;;
+  esac
+done
+[ -n "$OUT" ] || OUT="$(cd "$SRC/../../.." && pwd)/EVO-public"
 
 case "$OUT" in
   */skills/*)
@@ -37,9 +47,19 @@ case "$OUT" in
 esac
 
 if [ -e "$OUT" ]; then
-  echo "✗ 目标已存在：$OUT"
-  echo "  先移走或删除再跑（本脚本不删已有目录，防误删）"
-  exit 1
+  # 发布是高频动作，每次手动 rm 容易变成 rm -rf 手滑；给一个受控的 --force。
+  # 守卫：只允许删除名字里带 EVO-public 的目录，且不允许是 /、$HOME、.、.. 这类。
+  if [ "$FORCE" = 1 ]; then
+    case "$OUT" in
+      ""|"/"|"."|".."|"$HOME") echo "✗ 拒绝危险的输出路径：$OUT"; exit 2 ;;
+      */EVO-public*) echo "── --force：清理旧产物 $OUT"; rm -rf "$OUT" ;;
+      *) echo "✗ --force 只允许用于 */EVO-public* 命名的目标：$OUT"; exit 2 ;;
+    esac
+  else
+    echo "✗ 目标已存在：$OUT"
+    echo "  先移走或删除再跑，或加 --force（仅限 */EVO-public* 目标）"
+    exit 1
+  fi
 fi
 
 # 本脚本只产出「工作树」，不建 .git。
@@ -149,6 +169,30 @@ LEFT=$(grep -rl '/sdcard/Download/Operit' "$DST" 2>/dev/null | sed "s|$DST/||" |
 if [ -n "$LEFT" ]; then
   echo "  ⚠ 仍有本机路径残留（文档或注释，确认可接受）："
   echo "$LEFT" | sed 's/^/     /'
+fi
+
+# 5.5 一次性补丁脚本不得进入分发包
+# 2026-11-17 事故：白名单 `cp -r data/cmd/.` 整目录拷贝，6 个 fix-*.py 随公开快照外泄。
+# 判据不用「排除清单」（清单必然漏），改用「命名模式 + 正文自述标记」——命名即契约，
+# 新增脚本无需回来登记，写错名字也会被它自己的正文抓住。
+ONES=$(find "$DST/data/cmd" -maxdepth 1 -name '*.py' 2>/dev/null | while read -r f; do
+  b=$(basename "$f")
+  case "$b" in
+    fix-*.py|*-patch-*.py|*-[0-9][0-9][0-9][0-9].py) echo "$b"; continue ;;
+  esac
+  grep -q '一次性' "$f" 2>/dev/null && echo "$b"
+  :  # set -e：上一句 grep 未命中时返回 1，会让循环体/管道/赋值连环失败并静默中止构建（实测 rc=1 无报错）
+done || true)
+if [ -n "$ONES" ]; then
+  echo "✗ 一次性补丁混入 data/cmd/（应放 data/archive/oneshot/）："
+  echo "$ONES" | sed 's/^/     /'
+  BAD=1
+fi
+
+# 5.6 归档目录不外发（本机运维史 + 硬编码路径）
+if [ -e "$DST/data/archive" ]; then
+  echo "✗ 泄露：data/archive（本机运维归档）"
+  BAD=1
 fi
 
 if [ "$BAD" -ne 0 ]; then

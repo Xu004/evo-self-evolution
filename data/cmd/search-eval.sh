@@ -27,6 +27,9 @@ LABEL=${1:-adhoc}
 ES=${2:-$ROOT/data/search-evalset.tsv}
 [ -f "$ES" ] || die "无评测集：$ES"
 store_init
+# 无索引时每题都必然 rank=0 —— 静默输出 0/10 和「检索真的退化了」在报告里长得一模一样。
+# 这是「满分基线」的对称病：零分基线同样是假信号，宁可直接拦。
+[ -s "$STORE/index.tsv" ] || die "无索引：先跑 sh bin/evo index build（否则每题都 rank=0，看起来像检索退化）"
 REP="$STORE/search-eval-$LABEL.txt"
 TAB=$(printf '\t')
 : > "$REP"
@@ -34,6 +37,8 @@ TAB=$(printf '\t')
 TOT=0; H1=0; H3=0; H5=0; MISS=0
 
 # 用整行读 + 手工拆列：read 两个变量时，末行无换行符会丢失整条用例（实测丢第 20 题）。
+# fork-ok: 每条用例必须独立起一次 index_search —— 评测对象就是「单次调用」这条路径，
+# 合并成一次批处理会让被测对象从 CLI 变成内部函数，测出来的分不再对应真实用法。20 题固定迭代。
 while IFS= read -r LINE <&3 || [ -n "${LINE:-}" ]; do
   [ -n "${LINE:-}" ] || { LINE=""; continue; }
   Q=${LINE%%"$TAB"*}

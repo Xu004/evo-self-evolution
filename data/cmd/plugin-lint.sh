@@ -14,6 +14,14 @@ CONF="$(dirname "$0")/ledger-enum.conf"
 . "$CONF"
 
 PJ="${1:-/sdcard/Download/Operit/plugins/com.yg.evo/journal.md}"
+# 公开快照/本地克隆：宿主插件目录不存在时回落到包内账本 data/journal.md
+# （仅当用户未显式指定时生效；开发态真账本存在则此块不动）
+if [ $# -eq 0 ] && [ ! -f "$PJ" ]; then
+  _r=$(cd "$(dirname "$0")/../.." 2>/dev/null && pwd)
+  [ -f "$_r/data/journal.md" ] && PJ="$_r/data/journal.md"
+  :
+fi
+
 [ -f "$PJ" ] || { echo "违规：插件账本不存在（$PJ）"; exit 1; }
 
 awk -F'|' -v ENUM="$LEDGER_ENUM" '

@@ -15,7 +15,25 @@ warn() { printf 'warn %s\n' "$*" >&2; }
 fail() { printf 'FAIL %s\n' "$*" >&2; }
 die()  { fail "$*"; exit 1; }
 
-evo_journal() { printf '%s\n' "${EVO_JOURNAL:-$EVO_JOURNAL_DEFAULT}"; }
+# 账本路径解析（唯一真相源：所有走 common.sh 的命令都从这取）
+# 优先级：EVO_JOURNAL 显式 → 宿主插件目录（开发态真账本）→ 包内 data/journal.md → 默认值
+#
+# 为什么要有第 3 级：构建期已把默认值改写为 ${EVO_HOME:-$HOME/.evo}/journal.md，
+# 但公开快照/本地克隆根本没有宿主插件目录，账本就在包内 data/journal.md。
+# 只认两级的话，clone 后第一条 `evo store sync` 就报「账本不存在: /root/.evo/journal.md」
+# —— 开箱即坏，且报错信息会把人引向「插件未装」的错误结论。
+# 开发态真账本存在时永远命中第 2 级，行为不变。
+evo_journal() {
+  if [ -n "${EVO_JOURNAL:-}" ]; then
+    printf '%s\n' "$EVO_JOURNAL"
+  elif [ -f "$EVO_JOURNAL_DEFAULT" ]; then
+    printf '%s\n' "$EVO_JOURNAL_DEFAULT"
+  elif [ -f "$ROOT/data/journal.md" ]; then
+    printf '%s\n' "$ROOT/data/journal.md"
+  else
+    printf '%s\n' "$EVO_JOURNAL_DEFAULT"
+  fi
+}
 
 store_init() { mkdir -p "$STORE" 2>/dev/null || die "无法创建 $STORE"; }
 

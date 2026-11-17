@@ -49,12 +49,11 @@ EVO 不是记忆层。EVO 是记忆层的 **CI**。
 ```sh
 # 1. 门禁（不依赖账本）
 sh bin/evo self-test
-# → PASS=37 FAIL=0 WARN=3
-#   3 条 WARN 是「无账本 / 无 git」，公开仓库属预期，不是故障
+# → PASS=30 FAIL=0 WARN=3
+#   3 条 WARN 是「无账本 / 无 git / 无 bundle」，公开仓库属预期，不是故障
 
 # 2. 载入示例账本（10 条通用经验）
 cp data/journal.seed.md data/journal.md
-export EVO_JOURNAL="$PWD/data/journal.md"
 sh bin/evo store sync && sh bin/evo index build
 # → ok  store sync: 10 条
 # → ok  index build: 10 条
@@ -65,6 +64,17 @@ sh bin/evo search '中文长句搜不到怎么办'
 # 4. 评测（10 题公开样例集）
 sh bin/evo search-eval example
 ```
+
+**不需要设任何环境变量**。账本位置按三级解析（`lib/common.sh` 的 `evo_journal()`）：
+
+| 优先级 | 位置 | 说明 |
+|---|---|---|
+| 1 | `$EVO_JOURNAL` | 显式指定。接你自己的插件/服务账本：`export EVO_JOURNAL=/path/to/journal.md` |
+| 2 | `${EVO_HOME:-$HOME/.evo}/journal.md` | 装了 Operit 插件时，这里就是真账本 |
+| 3 | `<仓库>/data/journal.md` | clone 下来的默认态 |
+
+> 第 3 级不是可选项：少了它，clone 后第一条命令就报「账本不存在: ~/.evo/journal.md」。
+> 这是 2026-11-17 实测踩到的开箱缺陷，已修并列入 CI 的 smoke 断言（不设变量也要跑通）。
 
 预期输出：
 

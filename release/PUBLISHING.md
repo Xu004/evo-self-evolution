@@ -166,10 +166,18 @@ Release 说明模板：
 ## 7. 每次发版前 checklist
 
 - [ ] `sh bin/evo check` 在开发机全绿
-- [ ] `sh bin/evo self-test` 41/0/0
+- [ ] `sh bin/evo self-test` **FAIL=0**（PASS 数随环境变：开发机有账本/git/bundle，公开快照只有 30 项，别对数字做断言）
 - [ ] `sh bin/evo adv` 全绿
 - [ ] `CHANGELOG.md` 已更新且版本号与 `SKILL.md` 一致（C4）
-- [ ] `release/build-public.sh` 泄露校验 0 致命
+- [ ] `sh release/build-public.sh --force` 泄露校验 0 致命（含两项新断言：`data/cmd/` 不得有一次性补丁、`data/archive/` 不得外发）
+- [ ] **公开快照开箱验证**（回归哨，别跳）：
+      ```sh
+      cd <公开快照>
+      cp data/journal.seed.md data/journal.md
+      sh bin/evo store sync        # 不设 EVO_JOURNAL / EVO_HOME
+      sh bin/evo search-eval example
+      ```
+      期望 `Top1=8/10`。若报「账本不存在: ~/.evo/journal.md」，说明 `evo_journal()` 的第三级回退被改坏了。
 - [ ] 公开快照 `git rev-list --count HEAD` == 1
 - [ ] `WHITEPAPER.md` / `README.md` 里的数字与实际一致
 - [ ] 新增的评测集**没有**误入公开包

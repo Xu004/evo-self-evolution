@@ -88,7 +88,9 @@ jobs:
           set -eu
           chmod +x bin/evo data/cmd/*.sh
           cp data/journal.seed.md data/journal.md
-          export EVO_JOURNAL="$PWD/data/journal.md"
+          # 故意不设 EVO_JOURNAL / EVO_HOME：公开快照必须开箱自洽。
+          # 2026-11-17 实测过：这里一旦 export，就会把「evo_journal() 只认宿主目录」
+          # 的缺陷盖住 —— 用户在本地 clone 后第一条命令就报「账本不存在」。
 
           sh bin/evo store sync      | tail -1
           sh bin/evo index build     | tail -1

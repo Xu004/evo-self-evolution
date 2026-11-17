@@ -12,4 +12,4 @@
    `sh data/cmd/status.sh`（刷新看板）
 ⑧ 建次日链：先 `sh data/cmd/chain.sh new "{NEXT_T}"` 查重（坑24 防双触发），通过才 create_workflow，并 patch 自删节点（on_success + on_failure 两条连线）。
 异常：本消息若未在 {T} +10min 前落地，次日按心跳缺失记 ❌；连续 2 次按 H16 降级被动通道。
-取证：/sdcard/Download/Operit/skills/EVO自进化 为唯一真身；所有文件核对走 super_admin:terminal（坑19：read_file 在中文路径会误报）。
+取证：${EVO_HOME:-$HOME/.evo} 为唯一真身；所有文件核对走 super_admin:terminal（坑19：read_file 在中文路径会误报）。

@@ -54,3 +54,4 @@ data/patches/*
 data/store/*
 # v1.0.3 2026-11-17：本机备份目录（含真实账本快照与清理台账）不随包外发
 data/backup/*
+data/archive/
