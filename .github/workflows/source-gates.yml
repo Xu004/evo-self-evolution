@@ -97,17 +97,34 @@ jobs:
           fi
           echo "零泄漏检查通过（代码 0 命中 / 账本实体不存在 / journal 空模板）"
 
-      - name: 开箱断言（seed → sync → eval → self-test）
+      # 拆成独立 step：失败时 jobs API 的 step 名即定位线索（日志需认证，step 粒度不需要）
+      - name: 开箱 A · seed → sync → index（应 10 条）
         run: |
           set -eu
           cd "$RUNNER_TEMP/EVO-public"
           cp data/journal.seed.md data/journal.md
           sh bin/evo store sync
           sh bin/evo index build
+
+      - name: 开箱 B · search-eval 断言（Top1=8/10）
+        run: |
+          set -eu
+          cd "$RUNNER_TEMP/EVO-public"
           OUT=$(sh bin/evo search-eval example 2>&1 || true)
-          echo "$OUT" | tail -3
-          echo "$OUT" | grep -q 'Top1=8/10' || { echo "::error::成绩与文档不符（文档承诺 Top1=8/10）"; exit 1; }
+          echo "$OUT" | tail -4
+          if ! echo "$OUT" | grep -q 'Top1=8/10'; then
+            echo "::error::成绩与文档不符（文档承诺 Top1=8/10）"
+            exit 1
+          fi
+
+      - name: 开箱 C · self-test 断言（FAIL=0）
+        run: |
+          set -eu
+          cd "$RUNNER_TEMP/EVO-public"
           ST=$(sh bin/evo self-test 2>&1 || true)
-          echo "$ST" | tail -3
-          echo "$ST" | grep -q 'FAIL=0' || { echo "::error::self-test 存在 FAIL"; exit 1; }
+          echo "$ST" | tail -4
+          if ! echo "$ST" | grep -q 'FAIL=0'; then
+            echo "::error::self-test 存在 FAIL"
+            exit 1
+          fi
           echo "开箱断言全部通过"
