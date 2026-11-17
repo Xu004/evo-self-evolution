@@ -4,7 +4,7 @@
 # 从：data/journal.md （行式，journal-lint.sh 检查的格式）
 # 幂等键：op | 对象 | 时间 —— 重复导入不追加
 # 类型映射（插件 4 值 → skill 16 值白名单中的 4 个）：
-#   exp → enum   rule → refactor   fail → fix   state → update
+#   exp → enum   rule → refactor   fail → fix   state → update   fix → fix
 # 用法：sh bin/evo bridge-journal [插件账本路径]
 # 注：本脚本只读插件账本，绝不写它；镜像方向永远是 插件 → skill。
 PJ="${1:-/sdcard/Download/Operit/plugins/com.yg.evo/journal.md}"
@@ -23,6 +23,8 @@ function map(k) {
   if (k == "rule")  return "refactor"
   if (k == "fail")  return "fix"
   if (k == "state") return "update"
+  # v0.20：主账本有 fix 类型（当前 7 条），无映射时会在下游 op=="" 被静默丢弃
+  if (k == "fix")   return "fix"
   return ""
 }
 {
@@ -37,16 +39,21 @@ function map(k) {
   print op" | "ob" | "ts" | "cc" | "vf
 }' "$PJ" > "$TMP" 2>/dev/null || { echo "转换失败"; rm -f "$TMP"; exit 1; }
 
-ADD=0; SKIP=0
-while IFS= read -r ln; do
-  [ -z "$ln" ] && continue
-  key=$(echo "$ln" | cut -d'|' -f1-3)
-  if grep -qF "$key" "$J" 2>/dev/null; then
-    SKIP=$((SKIP + 1))
-  else
-    echo "$ln" >> "$J"
-    ADD=$((ADD + 1))
-  fi
-done < "$TMP"
-rm -f "$TMP"
+# v0.20：原实现逐条 grep + cut（约 3 fork/条），52 条账本 ≈ 156 fork。
+# 改单 awk 两文件一次算差集（教训 18）：幂等键仍是 op|对象|时间，输出保留原行格式。
+# SUBSEP 作分隔符比 "|" 拼接更稳——字段内即使含 | 也不会串键。
+awk -F'|' '
+NR == FNR {
+  k = $1 SUBSEP $2 SUBSEP $3; gsub(/^[ \t]+|[ \t]+$/, "", k); have[k] = 1; next
+}
+{
+  k = $1 SUBSEP $2 SUBSEP $3; gsub(/^[ \t]+|[ \t]+$/, "", k)
+  if (!(k in have)) { have[k] = 1; print $0 }
+}' "$J" "$TMP" > "$TMP.new" 2>/dev/null
+
+ADD=$(wc -l < "$TMP.new" 2>/dev/null || echo 0)
+TOT=$(wc -l < "$TMP" 2>/dev/null || echo 0)
+SKIP=$((TOT - ADD))
+[ "$ADD" -gt 0 ] && cat "$TMP.new" >> "$J"
+rm -f "$TMP" "$TMP.new"
 echo "导出完成：新增 $ADD 条，已存在 $SKIP 条（幂等键 = op | 对象 | 时间）"

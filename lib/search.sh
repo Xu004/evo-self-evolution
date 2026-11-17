@@ -27,7 +27,11 @@ index_search() {
   if [ "${1:-}" = "--all" ]; then LIM=999; shift; fi
   if [ $# -lt 1 ]; then usage_search; return 2; fi
 
-  [ -f "$STORE/index.tsv" ] || die "索引不存在：先跑 evo store sync && evo index build"
+  # 索引路径可注入（EVO_INDEX_TSV）：对抗测试 A22 用临时空索引验证 lexicon 展开。
+  # 不隔离的话，账本一写进「闪退」这个词，查询就变成真命中，用例假红——
+  # 那是用例对数据的隐式依赖，不是检索层的缺陷。
+  IDX="${EVO_INDEX_TSV:-$STORE/index.tsv}"
+  [ -f "$IDX" ] || die "索引不存在：先跑 evo store sync && evo index build"
 
   Q="$*"
   # 全空白 / 空串：明确报错，不伪装成 MISS
@@ -132,7 +136,7 @@ index_search() {
         printf "%d. [%s] %s  score=%d hits=%d/%d\n   取: get_memory_by_title(\"%s\")\n", \
                i, D[i], Tt[i], R[i], H[i], n, Tt[i]
       printf "COUNT %d\n", c
-    }' "$STORE/index.tsv")
+    }' "$IDX")
 
   CNT=$(printf '%s\n' "$OUT" | awk '/^COUNT /{print $2}')
   CNT=${CNT:-0}

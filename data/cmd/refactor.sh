@@ -71,7 +71,20 @@ scan_sh() {
       if (n >= 5) {
         k = win[n-4] SUBSEP win[n-3] SUBSEP win[n-2] SUBSEP win[n-1] SUBSEP win[n]
         if (!(k in seen)) seen[k] = FILENAME ":" FNR
-        else if (!(k in rpt)) { rpt[k] = 1; L = win[n]; gsub(/\|/, "·", L); printf "F|R01|P1|%s → %s|5 行重复块，末行：%s|抽公共函数（跨文件抽取引入 source 依赖，需人工确认）|no\n", seen[k], FILENAME ":" FNR, L }
+        else if (!(k in rpt)) {
+          rpt[k] = 1
+          # v0.20：定位/配置样板（HERE/ROOT/CONF/export TZ/cd）重复不算 R01 ——
+          # 抽 common.sh 会破坏「单文件可跑」，R08 已对同类豁免，R01 与之口径对齐
+          boil = 1
+          for (q = n - 4; q <= n; q++) {
+            w = win[q]
+            if (w ~ /^[[:space:]]*(export TZ|HERE=|ROOT=|CONF=|WF_DIR=|HB_DIR=)/) continue
+            if (w ~ /^[[:space:]]*\[ -f "\$CONF" \]/) continue
+            if (w ~ /^[[:space:]]*cd[[:space:]]/) continue
+            boil = 0; break
+          }
+          if (!boil) { L = win[n]; gsub(/\|/, "·", L); printf "F|R01|P1|%s → %s|5 行重复块，末行：%s|抽公共函数（跨文件抽取引入 source 依赖，需人工确认）|no\n", seen[k], FILENAME ":" FNR, L }
+        }
       }
     }
     pv2 = pv1; pv1 = $0

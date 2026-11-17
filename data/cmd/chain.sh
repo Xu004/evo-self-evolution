@@ -28,6 +28,7 @@ case "${1:-help}" in
 list)
   echo "== workflow ($WF_DIR) =="
   found=0
+  # fork-ok: 手动诊断命令 list，迭代上限=workflow 文件数（实测 <20），不在 check/self-test 门禁路径
   for f in "$WF_DIR"/*.json; do
     [ -f "$f" ] || continue
     found=1
@@ -46,6 +47,7 @@ check|new)
   T="${2:-}"
   [ -n "$T" ] || { echo "用法: sh chain.sh $1 \"2026-11-16 03:00\""; exit 2; }
   dup=""
+  # fork-ok: 手动查重命令 check/new，迭代上限=workflow 文件数，非门禁路径，人触发
   for f in "$WF_DIR"/*.json; do
     [ -f "$f" ] || continue
     if [ "$(jget specific_time "$f")" = "$T" ]; then

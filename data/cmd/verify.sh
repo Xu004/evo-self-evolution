@@ -42,4 +42,4 @@ if [ "$FAILED" -eq 1 ]; then
   echo "结论: 存在 FAIL，按差异行补写后重跑本脚本"
   exit 2
 fi
-echo "结论: 全部 PASS，中间文件已按 v0.15 生命周期清理"
+echo "结论: 全部 PASS，中间文件已按 生命周期清理"

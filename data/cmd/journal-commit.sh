@@ -33,6 +33,7 @@ say() { [ "$QUIET" = "1" ] || echo "$@"; }
 mkdir -p data/store 2>/dev/null
 GOT=0
 i=0
+# fork-ok: 取锁重试循环，正常路径第 1 次即成功，上限 60 次由 30s 超时保护
 while [ "$i" -lt 60 ]; do
     if mkdir "$LOCKDIR" 2>/dev/null; then
         echo $$ > "$LOCKDIR/pid"

@@ -24,6 +24,13 @@ if [ -z "$J" ]; then
     J="journal.md"
   fi
 fi
+# 类型真源：单一真源见 data/cmd/ledger-enum.conf，本脚本不再自维护白名单（v0.20）
+LEDGER_ENUM=""
+for c in cmd/ledger-enum.conf ./ledger-enum.conf ../data/cmd/ledger-enum.conf; do
+  [ -f "$c" ] && { . "./$c"; break; }
+done
+[ -n "$LEDGER_ENUM" ] || { echo "违规：类型真源 ledger-enum.conf 缺失"; exit 1; }
+
 [ -f "$J" ] || { echo "违规：账本不存在 $J"; exit 1; }
 
 ST="store/journal.tsv"
@@ -35,14 +42,16 @@ else
   FREE="无游离账本"
 fi
 
-awk -F'|' -v free="$FREE" -v jp="$J" '
+awk -F'|' -v free="$FREE" -v jp="$J" -v enum="$LEDGER_ENUM" '
 function trim(s) { gsub(/^[ \t]+|[ \t]+$/, "", s); return s }
 function bad(arr, n, limit,   i) { for (i = 1; i <= n && i <= limit; i++) print arr[i] }
 BEGIN {
-  # v0.17.1：补入账本长期在用的 exp / fail / rule / state / decision / project
-  #（旧白名单只照 journal-add.sh 的 op 枚举写，导致 exp 等 20+ 条主力记录被判「非法 op」）
-  NV = split("create update fix move pack copy verify backup enum route run delete link eval refactor H1-violation exp fail rule state decision project", V, " ")
+  # v0.20：白名单来自 ledger-enum.conf（真源），不再脚本内硬编码
+  #（v0.17.1 曾把旧 22 值抄进这片 awk，与 journal-add 的 5 值真源分裂 → 守门失明）
+  NV = split(enum, V, " ")
   for (i = 1; i <= NV; i++) valid[V[i]] = 1
+  # H1-violation 是审计信号而非记录类型：真源里没有它，但不该被判非法
+  valid["H1-violation"] = 1
 }
 {
   line = $0

@@ -51,14 +51,23 @@ N=0
 while IFS='|' read -r id cat q rc must forbid; do
   case "$id" in ''|'#'*) continue ;; esac
   N=$((N + 1))
+  IIDX=""
 
   # 标记展开
   case "$q" in
     '@LONG600') q=$(awk 'BEGIN{for(i=0;i<600;i++)printf "机制"}') ;;
   esac
+  # 数据隔离：凡是「断言这个词不该命中」的用例——即 rc=3 的全部 + A13（不校验 rc
+  # 但断言 H2 不得命中 H21）——一律跑固定夹具，不跑真实账本。
+  # 理由是已经踩了三次：账本里写进「闪退」→ A22 假红；写进「H2 误吞 H21」→ A13 假红；
+  # 写进「; ls /」→ A05 假红。真实账本是会增长的生产数据，不能当测试基线。
+  # 新增此类用例只要 rc=3 就自动走夹具；新增「期望 HIT」用例则跑真实账本。
+  case "$id:$rc" in
+    A13:*|*:3) IIDX="$ROOT/data/adv-fixture.tsv" ;;
+  esac
   q=$(printf '%s' "$q" | sed 's/%PIPE%/|/g')
 
-  OUT=$(sh "$ROOT/bin/evo" search "$q" 2>&1)
+  OUT=$(EVO_INDEX_TSV="$IIDX" sh "$ROOT/bin/evo" search "$q" 2>&1)
   ARC=$?
 
   BADN=0
