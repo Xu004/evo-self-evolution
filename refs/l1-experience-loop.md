@@ -101,9 +101,11 @@ MISS 时自动调 `lexicon` 展开，并打印可直接执行的 `query_memory(f
 
 | 条目类型 | 必填字段 |
 |---|---|
-| 经验 | 适用场景 / 关键步骤 / 坑 / 计数（success/fail）/ 淘汰评分（access_count/last_access/verified，last_access 即唯一时间锚点） |
-| 规则 | 触发条件 / 规则内容 / 来源经验引用 |
-| 状态类（自进化状态/能力图谱/技能统计） | 版本或时钟字段 / 计数 / 更新日志 |
+| 经验 | 适用场景 / 关键步骤 / 坑 / 计数（success/fail）/ 淘汰评分（access_count/last_access/verified，last_access 即唯一时间锚点）/ **folder_path** |
+| 规则 | 触发条件 / 规则内容 / 来源经验引用 / **folder_path** |
+| 状态类（自进化状态/能力图谱/技能统计） | 版本或时钟字段 / 计数 / 更新日志 / **folder_path** |
+
+> **`folder_path` 自 v1.3 起是硬必填**，三类条目一律显式传，禁止省略靠默认值。理由：省略时条目落进默认归属，后果是「数不到也搜不到」的静默缺口（folder 语义双轨，见 `data/playbook/playbook-enum.md`）——不报错、不告警，只在日后检索时表现为莫名找不到。省略 = 缺陷，不是简化。
 
 **写入规则：**
 
@@ -118,6 +120,7 @@ MISS 时自动调 `lexicon` 展开，并打印可直接执行的 `query_memory(f
 5. 标题精确性（H13 硬性）：任何 update/delete 前按 H21 枚举结果取逐字标题。
 6. 变更流水（H14 硬性）：每次 create/update/delete 后向 `data/journal.md` 追加一行（仅审计，不对账）。
 7. 派生索引（H15 硬性）：新经验入库时按 tags 自动 append 到对应索引条目（如「索引:<项目>」）；索引内容一律由入库动作派生，禁止手写维护索引清单。
+8. 归属显式（v1.3 硬性）：任何 create/update 必须显式传 `folder_path`；H5 回读验证时该字段一并落 expect/actual 参与 diff，缺该字段的条目视为未通过验证。
 
 **写操作后强制序列（v0.13，checklist 五连，未勾完不算完成）：**
 
