@@ -1,0 +1,107 @@
+name: source-gates
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  lint:
+    name: lint（语法 + frontmatter）
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 安装运行时
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq mawk
+          mawk -W version 2>&1 | head -1
+
+      - name: sh -n 全量语法
+        run: |
+          set -eu
+          chmod +x bin/evo data/cmd/*.sh 2>/dev/null || true
+          fail=0
+          git ls-files '*.sh' 'bin/evo' '.githooks/pre-commit' > /tmp/shells.txt
+          while IFS= read -r f; do
+            [ -f "$f" ] || continue
+            if ! sh -n "$f"; then
+              echo "::error file=$f::shell 语法错误"
+              fail=1
+            fi
+          done < /tmp/shells.txt
+          echo "检查文件数：$(wc -l < /tmp/shells.txt)"
+          exit $fail
+
+      - name: py_compile
+        run: |
+          set -eu
+          files=$(git ls-files 'data/cmd/*.py')
+          if [ -z "$files" ]; then
+            echo "无 .py 文件，跳过"
+          else
+            python3 -m py_compile $files
+            echo "py_compile ok：$(echo "$files" | wc -l) 个"
+          fi
+
+      - name: SKILL.md frontmatter 完整性
+        run: |
+          set -eu
+          test -f SKILL.md
+          head -5 SKILL.md | grep -q '^name:'        || { echo "::error::SKILL.md 缺 name"; exit 1; }
+          head -5 SKILL.md | grep -q '^description:' || { echo "::error::SKILL.md 缺 description"; exit 1; }
+          LEN=$(sed -n '3p' SKILL.md | wc -c)
+          echo "description 字节数：$LEN"
+          [ "$LEN" -le 400 ] || { echo "::error::description 超 400 字节上限"; exit 1; }
+
+  snapshot:
+    name: build-public + 开箱断言
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 安装运行时
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq mawk
+
+      - name: 构建公开快照
+        run: |
+          set -eu
+          chmod +x bin/evo data/cmd/*.sh release/build-public.sh 2>/dev/null || true
+          sh release/build-public.sh "$RUNNER_TEMP/EVO-public"
+          test -f "$RUNNER_TEMP/EVO-public/bin/evo"
+          echo "产物文件数：$(find "$RUNNER_TEMP/EVO-public" -type f | wc -l)"
+          du -sh "$RUNNER_TEMP/EVO-public"
+
+      - name: 零泄漏断言
+        run: |
+          set -eu
+          cd "$RUNNER_TEMP/EVO-public"
+          for p in data/store data/backup data/archive; do
+            if [ -e "$p" ]; then
+              echo "::error::产物含 $p（不应分发）"
+              exit 1
+            fi
+          done
+          if grep -rln '/sdcard/Download/Operit' . 2>/dev/null | grep -q .; then
+            echo "::error::产物残留本机绝对路径："
+            grep -rln '/sdcard/Download/Operit' .
+            exit 1
+          fi
+          echo "零泄漏检查通过"
+
+      - name: 开箱断言（seed → sync → eval → self-test）
+        run: |
+          set -eu
+          cd "$RUNNER_TEMP/EVO-public"
+          cp data/journal.seed.md data/journal.md
+          sh bin/evo store sync
+          sh bin/evo index build
+          OUT=$(sh bin/evo search-eval example 2>&1 || true)
+          echo "$OUT" | tail -3
+          echo "$OUT" | grep -q 'Top1=8/10' || { echo "::error::成绩与文档不符（文档承诺 Top1=8/10）"; exit 1; }
+          ST=$(sh bin/evo self-test 2>&1 || true)
+          echo "$ST" | tail -3
+          echo "$ST" | grep -q 'FAIL=0' || { echo "::error::self-test 存在 FAIL"; exit 1; }
+          echo "开箱断言全部通过"

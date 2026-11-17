@@ -1,0 +1,19 @@
+#!/bin/sh
+# EVO pre-commit 守门：拦截疑似生产密钥 / 私钥入库
+# 放行文档示例：占位符 YOUR_ / EXAMPLE / PLACEHOLDER / REDACTED / SAMPLE / xxxx / <...>
+# 只读暂存区，不改动任何文件；命中即退出码 1。
+
+PATTERNS='-----BEGIN [A-Z ]*PRIVATE KEY-----|ghp_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{40,}|sk-(proj-)?[A-Za-z0-9_-]{20,}|AKIA[0-9A-Z]{16}|xox[baprs]-[A-Za-z0-9-]{12,}|eyJ[A-Za-z0-9_-]{16,}\.[A-Za-z0-9_-]{16,}\.[A-Za-z0-9_-]{8,}'
+
+HITS=$(git diff --cached -U0 --diff-filter=ACM 2>/dev/null \
+  | grep -nE -e "$PATTERNS" \
+  | grep -viE 'YOUR_|EXAMPLE|PLACEHOLDER|REDACTED|SAMPLE|xxxx|<[a-z_]+>|\.\.\.' || true)
+
+if [ -n "$HITS" ]; then
+  echo "[pre-commit] 拦截：检测到疑似密钥/私钥" >&2
+  echo "$HITS" | cut -c1-160 | head -n 20 >&2
+  echo "[pre-commit] 文档示例请改为占位符（YOUR_TOKEN / <REDACTED>）后重新提交" >&2
+  exit 1
+fi
+
+exit 0
