@@ -1,0 +1,43 @@
+# data/adversarial-tests.tsv · 检索层对抗用例集（v0.19）
+#
+# 格式（| 分隔）：id|类别|query|期望rc|必须包含|必须不含
+#   rc：0=HIT 2=无效查询 3=MISS any=不校验退出码
+#   @LONG600 会被 adv.sh 展开为 600 个「机制」（超长查询用例）
+#   空字段表示该项不校验
+#
+# 纪律：
+#   1 断言必须**结构性**（看 rc / score= / hits= / 关键字），不写具体标题内容，
+#     否则账本一增长就假红。内容和账本的耦合由 eval harness 负责，这里只测检索行为。
+#   2 只增不删；删用例必须挂 journal 账（删用例 = 降低门禁强度，需说明理由）。
+#   3 每加一条加固，必须同步加一条能证明它生效的用例。
+#
+A01|robustness||2|FAIL 空查询|
+A02|robustness|   |2|FAIL 空查询|
+A03|robustness|;;;|2|查询无效|
+A04|robustness|A|2|查询无效|
+A05|injection|; ls /|3|MISS|Tools.Files
+A06|injection|.*|2|查询无效|Tools.Files
+A07|injection|../../etc/passwd|3|MISS|root:
+A08|injection|$(id)|3|MISS|uid=
+A09|injection|%PIPE%|2|查询无效|
+A10|robustness|@LONG600|any||Illegal number
+A11|identifier|H21|0|score=120|
+A12|identifier|h21|0|score=120|
+A13|identifier|H2|||score=120
+A14|identifier|坑43|0|score=120|
+A15|identifier|T8|0|score=120|
+A16|identifier|43|0|HIT|
+A17|identifier|H21枚举|0|score=1|
+A30|identifier|H21枚举|0|hits=2/2|
+A18|identifier|  H21  |0|score=120|
+A19|identifier|H21 H21 H21|0|hits=1/1|
+A20|identifier|h2 h21|0|hits=1/2|
+A21|identifier|T3b|0|score=120|
+A22|lexicon|闪退|3|lexicon 展开|Illegal number
+A23|lexicon|汇编器|3|未收录|
+A24|coverage|folder 分类 rank|0|hits=3/3|
+A25|coverage|机制 归档|0|hits=2/2|
+A26|coverage|bundle T8|0|hits=2/2|
+A27|contract|zszszszs 不存在词|3|MISS|
+A28|contract||2|FAIL 空查询|
+A29|contract|evo|0|HIT|

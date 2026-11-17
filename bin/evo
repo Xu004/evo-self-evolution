@@ -23,6 +23,7 @@ ROOT=$(cd "$(dirname "$0")/.." && pwd) || exit 90
 . "$ROOT/lib/common.sh"
 . "$ROOT/lib/store.sh"
 . "$ROOT/lib/index.sh"
+. "$ROOT/lib/search.sh"
 
 usage() {
   # 坑41：禁止硬编码行号（文件一改就漂）——从 "# 用法:" 取到 set -u 之前
@@ -58,7 +59,7 @@ case $CMD in
   # ---- v1.1 脚本收敛入口：evo <脚本名> [参数] ----
   # 统一入口，向后兼容（sh data/cmd/<名>.sh 仍可用）。脚本实现不变，只收口调用面。
   # 例：evo check --fast ／ evo pack ／ evo eval report ／ evo journal-add create X Y
-  self-test|check|pack|dist|eval|refactor|verify|enum_merge|rotate-journal|bridge-journal|plugin-lint|journal-lint|journal-add|journal-commit|route-cache|lexicon)
+  self-test|check|pack|dist|eval|refactor|verify|enum_merge|rotate-journal|bridge-journal|plugin-lint|journal-lint|journal-add|journal-commit|route-cache|lexicon|adv)
     _s="data/cmd/$CMD.sh"
     [ -f "$_s" ] || { echo "无此脚本: $_s" >&2; exit 2; }
     exec sh "$_s" "$@"

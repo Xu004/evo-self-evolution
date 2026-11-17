@@ -27,6 +27,31 @@
 - **P1 索引直答两件（v0.16.5）**：① 检索**第一步**先跑本地索引 `sh bin/evo search "<词>"`（大小写不敏感，先 AND 后 OR，0.26s/次）→ HIT 直接 `get_memory_by_title("…")` 逐字取回，MISS 才走 `query_memory`；② 分区检索：12 个域由索引按账本类型列归类（A-ANDROID / A-SHELL / A-GAME / A-REVERSE / A-EVO / A-MISC / R-RULE / M-MECH / D-DECISION / S-STATE / E-EVENT / X-ENTRY），事件类不再挤占窗口。索引与枚举快照条数不一致 → 门禁 C12 FAIL。细则见 playbook-route.md「P1 分区检索与本地索引」。
 - **P1 结构体检（v0.16.6）**：sh bin/evo refactor scan 产出 data/refactor-report.md（11 条规则：重复块 / 循环内 fork / ROOT 重复 / log 函数 / 未用函数 / shebang / 双真相源 / 版本号 / SKILL 行数 / 条款重号 / 文档数字漂移），1.9s 全仓。**L0 只读 + L1 草案，不自动改代码**；报告按源码 md5 指纹，陈旧 → C13 FAIL。细则见 playbook-route.md「P1-D6 结构体检」。
 
+### 附录：检索层 v0.19（对抗加固版）
+
+`sh bin/evo search` 的实现迁到 `lib/search.sh`，旧实现改名 `index_search_legacy` 保留。回退 = 改回函数名 + 注释掉 `bin/evo` 里的 source，一行操作，不需要 git。
+
+七个加固点（每条在 `data/adversarial-tests.tsv` 都有能证明它生效的用例）：
+
+| # | 加固 | 原缺陷（实测） |
+|---|---|---|
+| 1 | 空/纯空白 → rc=2 | 静默 MISS rc=3，无法区分「没问」和「没找到」 |
+| 2 | 纯标点词过滤 | `; ls /` 拆成 3 词，得 180 分压过真实命中 |
+| 3 | 单字符词过滤 | `A` 靠 60+40 叠加，在任意含 a 条目上拿 100 分 |
+| 4 | 词长截断 64 / 词数上限 8 | 600 字整串当一词，必然 MISS |
+| 5 | 编号边界匹配 +120 | `H21` 只拿 35 分且打不中目标条；`H2` 曾误命中 `H21` |
+| 6 | 覆盖度 `hits/词数` 为主排序键 | 2/3 词命中的噪声压过 1/1 精确命中 |
+| 7 | 短拉丁词（≤3）强制边界 | `ls` 在 `Tools.Files` 里被当成命中 |
+
+另有两条工程细节：
+
+- **编号+中文混排拆词**：`H21枚举` → `h21` + `枚举`。不拆则整词做精确子串匹配，编号检索对混排输入完全失效（实测 MISS）。
+- **坑44**：awk 在 `BEGIN` 里 `exit` 仍会执行 `END` 块 → 输出两行 COUNT，shell 侧 `[ -gt ]` 报 Illegal number。判定必须放在 `END` 开头。
+
+MISS 时自动调 `lexicon` 展开，并打印可直接执行的 `query_memory(folder_path="self-evo", query="…")` 参数——原来只打印「走 lexicon 展开 + query_memory」这句话，等于把活又丢回给人。
+
+**门禁 C17**：`sh bin/evo adv`（29 条用例，六类：robustness / injection / identifier / lexicon / coverage / contract）。断言只用结构性判据（rc / `score=` / `hits=` / 关键字），不写具体标题，避免账本增长造成假红；注入是否真被执行由 canary 文件判定，不靠输出文本。改 `lib/search.sh` 或 `index.tsv` 结构前必须 adv 全绿。
+
 ### 2. EXECUTE
 
 正常执行任务。执行中同步记录（可事后补）：

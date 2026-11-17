@@ -61,7 +61,9 @@ index_stats() {
   awk -F'\t' '$3 != "-" && $3 != "" { c++ } END { printf "=== 别名已填 %d 条 ===\n", c + 0 }' "$STORE/index.tsv"
 }
 
-index_search() {
+# v0.19：改名保留。实际生效的是 lib/search.sh 里的 index_search（加固版）。
+# 回退方法：把下面这一行改回 index_search()（并注释掉 bin/evo 里的 lib/search.sh source）
+index_search_legacy() {
   [ $# -ge 1 ] || die '用法: evo search "词1 词2"'
   [ -f "$STORE/index.tsv" ] || die "索引不存在：先跑 evo store sync && evo index build"
 

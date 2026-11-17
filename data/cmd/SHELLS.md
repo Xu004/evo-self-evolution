@@ -19,7 +19,11 @@
 | `eval.sh` | 两者皆可 | — | 纯 grep/awk 记分，无外部依赖 |
 | `route-cache.sh` | 两者皆可 | — | 纯 grep/sed 读写缓存 |
 | `lexicon.sh` | 两者皆可 | — | 纯 grep 展开词库 |
-| `bin/evo`（引擎） | 两者皆可 | build ~0.3 s ｜ search 0.26 s/次 | `store sync` + `index build` 单进程 awk；**取代已删的 index.sh**（旧手工索引） |
+| `bin/evo`（引擎） | 两者皆可 | build ~0.3 s ｜ search 0.26 s/次 | `store sync` + `index build` 单进程 awk；**取代已删的 index.sh**（旧手工索引）；检索实现见 `lib/search.sh`（v0.19 加固版） |
+| `adv.sh`（v0.19 新） | 两者皆可 | 约 6–10 s（29 条用例，每条起 1 个 evo 进程） | 纯 POSIX；只调 `bin/evo search` + `index check`，只读不写；**C17 门禁直接调用** |
+| `bridge-journal.sh` | 两者皆可 | — | 跨对话账本桥接；纯 POSIX |
+| `journal-commit.sh` | 两者皆可 | — | 账本收尾一次做完：原子锁 + store sync + index build + 七查 |
+| `plugin-lint.sh` | **android 优先** | — | 插件包结构校验（dist / pack 前必跑） |
 | `refactor.sh` | **proot 优先** | 1.9 s/次（scan） | Android 可用，但 `apply` 需 `patch`（toybox 无） |
 | `chain.sh`（v1.3 新） | 两者皆可 | — | 纯 POSIX（grep/sed/date/touch）；内部强制 `TZ=Asia/Shanghai`（坑26） |
 | `status.sh`（v1.3 新） | **proot 优先** | — | 调 chain.sh + journal-lint.sh + grep 拼看板；android 下 TZ/zoneinfo 不可靠 |
@@ -59,9 +63,9 @@ android: ok    C0b 身份一致：目录名 = name = EVO
 ## 五、`--fast` 的边界
 
 `check.sh --fast` 做 C0（双真身）/ C0b（权威目录）/ C4（版本一致）/ C5（description 长度）/ C13（**仅自校验**，跳过指纹比对）五项。
-**跳过 13 项**：C1 更名残留、C2 脚本引用、C3 细则引用、C6 账本格式、C7 账本规模、C8 pack 源、C9 备份时效、C10 P0 脚本自检、C11 词库规模、C12 索引、C14 主干体积、C15 评测集、C16 refs 无孤儿。
+**跳过 14 项**：C1 更名残留、C2 脚本引用、C3 细则引用、C6 账本格式、C7 账本规模、C8 pack 源、C9 备份时效、C10 P0 脚本自检、C11 词库规模、C12 索引、C14 主干体积、C15 评测集、C16 refs 无孤儿、C17 检索对抗。
 C13 为何不跳：自校验是 1 次全文 md5（成本≈0），跳过它等于「跑快检就没人查报告是否被手改」。能降级成轻量版就别跳过。
-结论行如实报 `5/5 通过，FAIL=0，跳过 13`——跳过项从分母扣除，不冒充 15/15。
+结论行如实报 `5/5 通过，FAIL=0，跳过 14`——跳过项从分母扣除，不冒充 15/15。
 封版、打包、报价前必须跑无参数全量，`pack.sh` 无参数时自动跑全量闸门。
 
 ## 六、cwd 契约（2026-11-13 实测，R08 豁免的证据基础）

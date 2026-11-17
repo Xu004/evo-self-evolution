@@ -384,6 +384,25 @@ else
   fi
 fi
 
+# ---------- C17 检索层对抗测试（v0.19）----------
+# 为什么造这条：检索加固（空查询/纯标点/单字符/编号边界/覆盖度/注入）全是
+#   「不测就不知道有没有生效」的行为，人工点几下必然回归。
+#   lib/search.sh 或 index.tsv 结构任何改动，这里必须保持全绿，否则视为回归。
+chk
+if [ "$FAST" = "1" ]; then
+  skip "C17 检索对抗"
+elif [ -f data/.dist ]; then
+  # 分发态：data/store/ 不进包，无账本即无索引，对抗测试无对象 → 与 C15 同型豁免。
+  ok "C17 分发态：无账本无索引，对抗测试 n/a"
+else
+  if sh data/cmd/adv.sh --quiet >/tmp/.evo_c17.$$ 2>&1; then
+    ok "C17 检索对抗 $(grep -oE '用例 [0-9]+ 条' /tmp/.evo_c17.$$ | head -1) 全绿"
+    rm -f /tmp/.evo_c17.$$
+  else
+    fail "C17 检索对抗未通过（$(grep -c '^FAIL' /tmp/.evo_c17.$$) 项，日志 /tmp/.evo_c17.$$）"
+  fi
+fi
+
 echo "=== 结果：$((TOTAL - FAIL))/$TOTAL 通过，FAIL=$FAIL，跳过 $SKIPPED（$MODE）==="
 [ "$FAIL" -eq 0 ] || exit 1
 exit 0

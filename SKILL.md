@@ -116,7 +116,7 @@ v0.13 起所有计数/阈值/查表判定**一律代入公式执行，禁止心�
 - `data/journal.md`：`op | title | 时间 | 摘要 | 验证`，append-only，60 天整文件轮转不删行；格式审计 `sh bin/evo journal-lint`（**七查**，含野行与三方一致；默认校验权威账本 `plugins/com.yg.evo/journal.md`，`-j PATH` 可覆盖）。
 - `data/waters.md`：水位 / last_dream / 补采账 / 变更历史，由权威条目回读重生成（镜像角色）。
 - `data/store/*.tsv`：**运行期派生**——`journal.tsv`（账本镜像）/ `index.tsv`（检索索引）/ `alias.tsv`。单向派生自 journal，可随时重建：`sh bin/evo store sync && sh bin/evo index build`；一次做完全部收尾（原子锁 + 同步 + 索引 + 七查）用 **`sh bin/evo journal-commit`**。**不进分发包、不进 git。**
-- 检索入口统一为 `sh bin/evo search "<关键词>"`（标题/别名/触发词/结论/验证列加权）。
+- 检索入口统一为 `sh bin/evo search "<关键词>"`（v0.19加固，门禁C17，细则 refs/l1-experience-loop.md）。
 - 批次出包闭环：改文件 → stat/date 校准 → journal 记账 → 重打包（末位动作）→ 封批后不再改文件。
 
 ## 版本历史

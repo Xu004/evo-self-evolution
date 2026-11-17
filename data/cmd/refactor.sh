@@ -148,8 +148,11 @@ scan_doc() {
     [ "$n" != "$IDXN" ] && echo "F|R23|info|文档 vs index.tsv|文档称 $n 条条目，索引实际 $IDXN 条|同步或改口径|no"
   done
   # R23c --fast 跳过量（SHELLS.md 这类操作文档最容易漂移的数字）
+  # 判据必须带量词「项」：H6 验收列写的是「跳过 0」（意为不允许跳过），
+  # 只按「跳过+数字」匹配会把它误当成数量声明，报「文档称跳过 0 项」。
+  # 数量声明必带量词，规则语气不带 → 用「项」做区分，比维护白名单可靠。
   SK=$(grep -c 'skip "' data/cmd/check.sh 2>/dev/null); [ -n "$SK" ] || SK=0
-  grep -rhoE '跳过[[:space:]]*[0-9]+' SKILL.md data/cmd/*.md 2>/dev/null | grep -oE '[0-9]+' | sort -u | while read -r n; do
+  grep -rhoE '跳过[[:space:]]*[0-9]+[[:space:]]*项' SKILL.md data/cmd/*.md 2>/dev/null | grep -oE '[0-9]+' | sort -u | while read -r n; do
     [ "$n" != "$SK" ] && echo "F|R23|P1|文档 vs check.sh|文档称 --fast 跳过 $n 项，实际 skip 分支 $SK 个|同步文档数字|no"
   done
 }
