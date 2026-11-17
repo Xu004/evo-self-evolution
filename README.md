@@ -5,6 +5,7 @@
 > ⚠️ **这是源码树，不是分发快照。**
 > 可直接运行的分发快照由 `release/build-public.sh` 产出（白名单收敛 + 路径可移植化 + 泄漏校验，60 文件 / 479K）。
 > 分发快照的**用户文档**在 [`release/README.md`](release/README.md)；完整白皮书在 [`release/WHITEPAPER.md`](release/WHITEPAPER.md)。
+> 📖 **安装与使用说明书 → [`docs/使用说明.md`](docs/使用说明.md)**（环境要求 / 三条安装通道 / 命令全表 / 数据备份迁移 / 8 条实测排查）
 
 ---
 
