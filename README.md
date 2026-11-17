@@ -100,12 +100,27 @@ sh bin/evo self-test
 
 `.githooks/pre-commit` 拦：私钥头、`ghp_`、`github_pat_`、`sk-`、`AKIA`、`xox[baprs]-`、JWT 三段式；占位符（`YOUR_` / `EXAMPLE` / `PLACEHOLDER` / `REDACTED` / `xxxx` / `<...>`）自动放行。
 
-Git **不会**自动信任仓库内钩子，clone 后需手动启用：
+Git **不会**自动信任仓库内钩子，clone 后需手动启用。
+
+**情况一：普通文件系统（PC / Linux / Termux）**
 
 ```sh
-git config core.hooksPath .githooks
 chmod +x .githooks/pre-commit
+git config core.hooksPath .githooks
 ```
+
+**情况二：本仓库的宿主环境（Android / sdcard）**
+
+sdcard 是 FUSE 挂载，`chmod` 无效（`core.filemode=false` 就是这么来的），仓库内钩子拿不到执行位，git 会**静默跳过**它。此时在 git-dir 里放一个转调壳，唯一真源仍是仓库内那份：
+
+```sh
+GITDIR=$(git rev-parse --git-dir)
+printf '#!/bin/sh\nT=$(git rev-parse --show-toplevel 2>/dev/null || true)\nexec sh "$T/.githooks/pre-commit"\n' > "$GITDIR/hooks/pre-commit"
+chmod +x "$GITDIR/hooks/pre-commit"
+git config --unset core.hooksPath
+```
+
+> 踩坑记录：钩子不可执行时 git **不报错、不告警，直接放行**。本仓库第一次尝试就因此把一个假 token 提交进了历史（已用 `git reset --soft` 摘掉、未推送）。
 
 ---
 
