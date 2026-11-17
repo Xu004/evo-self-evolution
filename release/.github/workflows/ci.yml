@@ -1,0 +1,115 @@
+name: gates
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  # ─────────────────────────────────────────────────────────
+  # 唯一"真绿"门禁：self-test 的 41 条断言不依赖本地账本
+  # ─────────────────────────────────────────────────────────
+  self-test:
+    name: self-test (41 断言)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 安装运行时
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq mawk
+          mawk -W version 2>&1 | head -1
+          sh --version 2>/dev/null || echo "sh: dash/busybox"
+
+      - name: 目录与入口存在性
+        run: |
+          set -e
+          test -f SKILL.md        || { echo "缺少 SKILL.md"; exit 1; }
+          test -f bin/evo         || { echo "缺少 bin/evo"; exit 1; }
+          test -d lib             || { echo "缺少 lib/"; exit 1; }
+          test -d data/cmd        || { echo "缺少 data/cmd/"; exit 1; }
+          chmod +x bin/evo data/cmd/*.sh 2>/dev/null || true
+          head -3 SKILL.md
+
+      - name: self-test（FAIL=0 才算过，WARN 允许）
+        run: |
+          set -eu
+          OUT=$(sh bin/evo self-test 2>&1) || true
+          echo "$OUT"
+          echo "$OUT" | grep -q 'FAIL=0' || { echo "::error::self-test 存在 FAIL"; exit 1; }
+
+      - name: SKILL.md frontmatter 完整性
+        run: |
+          set -e
+          head -5 SKILL.md | grep -q '^name:'        || { echo "frontmatter 缺 name"; exit 1; }
+          head -5 SKILL.md | grep -q '^description:' || { echo "frontmatter 缺 description"; exit 1; }
+          LEN=$(sed -n '3p' SKILL.md | wc -c)
+          echo "description 字节数：$LEN"
+          [ "$LEN" -le 400 ] || { echo "description 超 400 字节上限"; exit 1; }
+
+  # ─────────────────────────────────────────────────────────
+  # 可选门禁：check / adv 需要「本地账本」，在 CI 中必然不完整
+  # 用 continue-on-error，只作可视化，不作合并条件
+  # 原因见 WHITEPAPER §5.5「可复现范围」
+  # ─────────────────────────────────────────────────────────
+  ledger-gates:
+    name: check + adv（需账本，预期不完整）
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq mawk
+          chmod +x bin/evo data/cmd/*.sh 2>/dev/null || true
+      - name: check（结构门禁）
+        run: sh bin/evo check || true
+      - name: adv（对抗用例）
+        run: sh bin/evo adv || true
+      - name: 说明
+        run: |
+          echo "::notice::check/adv 依赖本机账本条目，公开仓库中必然不完整。"
+          echo "::notice::这不是失败信号。可复现范围见 WHITEPAPER.md §5.5。"
+
+  # ─────────────────────────────────────────────────────────
+  # 文档承诺的可复现性，由 CI 守：数字变了就红，逼文档同步
+  # ─────────────────────────────────────────────────────────
+  smoke:
+    name: smoke（seed 开箱 + 文档数字一致性）
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq mawk
+
+      - name: seed → sync → index → search → eval
+        run: |
+          set -eu
+          chmod +x bin/evo data/cmd/*.sh
+          cp data/journal.seed.md data/journal.md
+          export EVO_JOURNAL="$PWD/data/journal.md"
+
+          sh bin/evo store sync      | tail -1
+          sh bin/evo index build     | tail -1
+          sh bin/evo search '中文长句搜不到怎么办' | head -3
+
+          OUT=$(sh bin/evo search-eval example 2>&1) || true
+          echo "$OUT" | tail -12
+
+          # 文档（README / WHITEPAPER）写的是 Top1=8/10 —— 漂了就红
+          echo "$OUT" | grep -q 'Top1=8/10' \
+            || { echo "::error::公开样例集成绩与文档不符（文档：Top1=8/10）"; exit 1; }
+
+      - name: 账本不得进仓库
+        run: |
+          set -eu
+          if git ls-files | grep -qE '^data/(store|backup)/'; then
+            echo "::error::账本实体被提交进仓库"
+            exit 1
+          fi
+          # 注意：本 job 前面已把 seed 覆盖到工作区 journal.md，
+          # 所以必须检查「仓库里的版本」而不是工作区文件。
+          N=$(git show HEAD:data/journal.md | grep -c '^|' || true)
+          echo "仓库内 journal.md 条目标记行：$N"
+          [ "$N" = "0" ] || { echo "::error::仓库内 journal.md 非空"; exit 1; }

@@ -31,6 +31,9 @@ data/eval-runs/*
 data/memory-titles.txt
 data/idx-*.txt
 
+# v1.0 GitHub 发布资产（README/白皮书/CI/构建脚本），不进 Skill 分发包
+release/
+
 # --- 系统垃圾 ---
 .DS_Store
 *.swp

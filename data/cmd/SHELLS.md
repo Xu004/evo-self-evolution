@@ -21,6 +21,7 @@
 | `lexicon.sh` | 两者皆可 | — | 纯 grep 展开词库 |
 | `bin/evo`（引擎） | 两者皆可 | build ~0.3 s ｜ search 0.26 s/次 | `store sync` + `index build` 单进程 awk；**取代已删的 index.sh**（旧手工索引）；检索实现见 `lib/search.sh`（v0.19 加固版） |
 | `adv.sh`（v0.19 新） | 两者皆可 | 约 6–10 s（29 条用例，每条起 1 个 evo 进程） | 纯 POSIX；只调 `bin/evo search` + `index check`，只读不写；**C17 门禁直接调用** |
+| `search-eval.sh`（v0.21 新） | 两者皆可 | 约 3–6 s（双集 40 题） | 账本口径检索评测：算 Top-1 / MRR / MISS；只读 `index.tsv`，不写账本；**评测集不随分发外发** |
 | `bridge-journal.sh` | 两者皆可 | — | 跨对话账本桥接；纯 POSIX |
 | `journal-commit.sh` | 两者皆可 | — | 账本收尾一次做完：原子锁 + store sync + index build + 七查 |
 | `plugin-lint.sh` | **android 优先** | — | 插件包结构校验（dist / pack 前必跑） |

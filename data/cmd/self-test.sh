@@ -80,6 +80,10 @@ if [ -z "$miss2" ]; then ok "T3b 别名分支路径全部有效"; else bad "T3b 
 STLOG=/tmp/.evo_selftest_check.log
 if sh "$ROOT/bin/evo" check --fast >"$STLOG" 2>&1; then
     ok "T4 check --fast 通过"
+elif [ ! -s "$ROOT/data/store/journal.tsv" ] || [ -f "$ROOT/data/journal.seed.md" ]; then
+    # 公开快照态（带 journal.seed.md）或空账本：check 必然不完整（缺备份/结构报告等）。
+    # 降级为 WARN，避免「环境缺失」被误读成「代码坏了」。
+    warn "T4 公开快照/无账本态，跳过 check --fast（本机开发环境应确保账本存在）"
 else
     bad "T4 check --fast 未通过（日志 $STLOG）"
 fi
@@ -88,7 +92,8 @@ fi
 if [ -e "$ROOT/.git" ] && git -C "$ROOT" rev-parse --git-dir >/dev/null 2>&1; then
     ok "T5 git 仓库就绪"
 else
-    bad "T5 git 仓库缺失（改动将不可回滚）"
+    # 工作树交付（公开快照 / zip 解压）没有 .git 属正常，只影响回滚能力。
+    warn "T5 无 git 仓库（改动不可回滚；运行不受影响）"
 fi
 
 # ---------- T6 一次性补丁脚本不许滞留 ----------
@@ -109,7 +114,11 @@ fi
 # ---------- T8 git bundle 冷备（proot rootfs 重建时 /home 下的 .git 会丢） ----------
 BUNDLE=$(ls -t "$ROOT"/data/backup/evo-git-*.bundle 2>/dev/null | head -1)
 if [ -z "$BUNDLE" ]; then
-    bad "T8 无 git bundle 冷备（跑 sh bin/evo bundle 生成）"
+    if [ -e "$ROOT/.git" ]; then
+        bad "T8 无 git bundle 冷备（跑 sh bin/evo bundle 生成）"
+    else
+        warn "T8 无 git，bundle 冷备不适用（初始化 git 后应跑 evo bundle）"
+    fi
 elif ! git -C "$ROOT" bundle verify "$BUNDLE" >/dev/null 2>&1; then
     bad "T8 bundle 损坏：$(basename "$BUNDLE")"
 else

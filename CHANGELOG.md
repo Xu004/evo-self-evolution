@@ -9,6 +9,11 @@
 - `journal-add` 重写：从写已废弃的 `data/journal.md` 改为写插件账本真身（表式 5 列），默认验证标记改为「未验证」
 - 账本存量修 8 处：`run`/`backup` → `state`、一行两条记录拆行、2 行补验证列、`fix` 纳入枚举
 - 版本控制上线：sdcard 为 FUSE 挂载、无法承载 `.git` 实体，故 `git init --separate-git-dir=/home/evogit`，工作树仍在原目录
+- **GitHub 发布线**：新增 `release/`（README / WHITEPAPER / LICENSE(AGPL-3.0) / COMMERCIAL / CONTRIBUTING / PUBLISHING / `.github/workflows/ci.yml` / `build-public.sh` / `journal.seed.md` / `search-evalset-example.tsv`）。构建期做三件事：白名单复制（零泄漏）、路径可移植化（`/sdcard/Download/Operit/...` → `${EVO_HOME:-$HOME/.evo}`，15 个文件）、泄露校验（账本实体 / 压缩包 / 账本非空 三项致命）。**公开快照不得放 `skills/` 下**（check C0 判双真身）；仓库名必须为 `EVO自进化`（C0b 校验目录名 == frontmatter name）
+- `self-test` T4/T5/T8 由 FAIL 降级为 WARN：T4 判「存在 `journal.seed.md`（公开快照态）或无 store 镜像」；T5/T8 判「无 `.git`」（工作树交付属正常）。本机开发环境（有账本、无 seed）仍走 FAIL，严格性不变
+- **公开包实测**：`self-test` **37 通过 / 0 失败 / 3 警告**；seed 10 条 → `search-eval example` **Top1 8/10 · Top3 9/10 · MRR 0.8500**。CI 的 `smoke` job 直接 grep 该数字，文档漂移即红
+- SHELLS.md 补登 `search-eval.sh`（refactor F16 清零）；`.distignore` 增 `release/`（发布资产不进 Skill 分发包）
+- **构建环境限制（记档）**：proot + overlay + FUSE 下 git 写对象不可靠（实测 `bad object HEAD`、自指 symlink、`unable to index file`），故 `build-public.sh` 只产工作树、**不建 `.git`**；git 化须在普通 Linux/macOS/Termux 或 GitHub 网页上传完成
 ## v0.21 工具线 (2026-11-18 · 检索中文 2-gram + 账本口径评测)
 - **中文长句检索修复**：mawk 的 `length`/`substr` 按**字节**（汉字 3 字节一字），故每 3 字节取 6 字节 = 2 个汉字做 bigram。原实现把「中文长句查询老是搜不到」整串当一个词做子串匹配 → 必然 MISS。纯 ASCII 切片（`route-stats` → rou/te-/sta）跳过；切到半截 UTF-8 的片在完整文本里天然匹配不到，无害。bigram 命中计入覆盖度分母 `(hits+bh)/(n+bn)`，不并入 hits（两个量纲混算会互相稀释）
 - **新增账本口径评测**：此前**完全没有基准**——改评分函数等于凭感觉优化，分不清「变好」和「碰巧」（v1.3 的 Q13 就是这么白干的）。新增 `data/cmd/search-eval.sh` + 注册 `sh bin/evo search-eval`；**双用例集必须同时跑**：`search-evalset.tsv` 真实问法集 20 题（自然语言问句，测真缺陷）+ `search-evalset-simple.tsv` 关键词回归集 20 题（防过拟合）
