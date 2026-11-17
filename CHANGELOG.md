@@ -4,6 +4,11 @@
 - purge 归档止漏：`archiveFoldedToMemory()` 在 `dist/main.js` 内短路（`return;/*dsh1:no-memory-archive*/`），`folderPath` 改 `'dsh-purge'` → 发布 v1.0.3（86813B，装机缓存两处标记各 1 命中）
 - 存量清理：删除 16 条 dsh-purge 重复归档（3 个 chatId 各留最新 1 条，共留 3 条），台账 `data/backup/purge-archive-prune-20261117.md`
 - `.distignore` 增 `data/backup/*`：本机备份目录（真实账本快照 + 清理台账）不随包外发
+- 校验口径统一 + 自检体系（同日补）：类型枚举收敛为单一真源 `data/cmd/ledger-enum.conf`（plugin-lint / journal-add 均改为读它，不再各写一份）；新增 `data/cmd/self-test.sh`（34 项：sh 语法 / py 编译 / 入口 / check --fast 冒烟 / git 就绪 / 一次性脚本残留 / .gitignore 覆盖）并注册 `sh bin/evo self-test`
+- H27 入库：任何「完成」宣告前必须 `evo check` + `evo self-test` 双绿，否则只能报未完成 + FAIL 清单
+- `journal-add` 重写：从写已废弃的 `data/journal.md` 改为写插件账本真身（表式 5 列），默认验证标记改为「未验证」
+- 账本存量修 8 处：`run`/`backup` → `state`、一行两条记录拆行、2 行补验证列、`fix` 纳入枚举
+- 版本控制上线：sdcard 为 FUSE 挂载、无法承载 `.git` 实体，故 `git init --separate-git-dir=/home/evogit`，工作树仍在原目录
 ## v0.17.1 工具线 (2026-11-16 · 收尾工具 journal-commit)
 - 新增 `data/cmd/journal-commit.sh`，并注册 `sh bin/evo journal-commit`：**mkdir 原子锁 → store sync → index build → 七查自检**，退出码 0 一致 / 1 等锁超时 / 2 违规
 - 幂等自愈（sync 与 index 条数不等自动再跑一轮）；只读校验（绝不改写账本，账本归 `evo_reflect` 专属写域）
