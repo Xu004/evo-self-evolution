@@ -33,12 +33,12 @@
 | 7 | 分发版打包 账本 模板 清空 | 事件：EVO 分发态打包 pack.sh 增加 .dist 分支并产出 EVO自进化 v1.0.0 zip | 事件 |
 | 8 | distignore 开发态 分发态 排除清单 混用 | 经验：EVO .distignore 是开发态清单，与分发态打包语义相反不可混用 | 经验 |
 | 9 | ToolPkg 安装 广播 参数 extras | 事件：EVO ToolPkg 安装链路打通与 0.17.2 读链路修复 | 事件 |
-| 10 | 屏幕 尺寸 API 宽度 没有 | 事实：Operit ToolPkg UI DSL 真实契约（组件集合 / 点击绑定 / Modifier / Text 属性） | 事实 |
+| 10 | 屏幕 尺寸 API 宽度 没有 | 事实：Operit ToolPkg UI DSL 真实契约（组件集合 / 点击绑定 / Modifier / Text 属性 / 屏幕尺寸与宽度 API 缺口） | 事实 |
 | 11 | api_version 版本 门槛 hook 失效 | 事件：dsh-purge 1.0.2 修复 registerChatRuntimeHook 的 API 门槛 | 事件 |
 | 12 | fps 计算公式 帧 窗口 | 经验:性能统计:300 帧窗口 fps 公式——fps×frameMs≈1000 自检 | 经验 |
 | 13 | 打包产物名 版本号 toolpkg 退役 | 机制：EVO 打包默认产物名带版本号（EVO.toolpkg 已退役） | 机制 |
 | 14 | token 开销审计 标题索引 分级读取 | 机制:self-evo-agent token 开销审计结论 | 机制 |
-| 15 | 备份 双轨制 经验预算 硬顶 100 条 | 机制:记忆库备份恢复与经验预算制 | 机制 |
+| 15 | 备份 双轨制 经验预算 硬顶 100 条 | 机制:记忆库备份恢复（双轨制 manifest+全文卷）与经验预算制（100 条硬顶） | 机制 |
 | 16 | Skill 插件 作用域 跨对话不收集 | 经验：Skill 形态插件的作用域边界——仅在本对话加载，跨对话不自动收集 | 经验 |
 | 17 | apply 白名单 C13 指纹 必然回滚冲突 | 经验：EVO refactor.sh apply 与 C13 指纹检查存在必然回滚冲突 | 经验 |
 | 18 | 跨对话漏采 文明跃迁 v9 零沉淀 | 事件：跨对话漏采确认——「文明跃迁游戏开发回顾」对话完成 v9 引擎基座版但零沉淀 | 事件 |
