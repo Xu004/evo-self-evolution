@@ -82,3 +82,4 @@ C13 为何不跳：自校验是 1 次全文 md5（成本≈0），跳过它等�
 
 > 修订规则时不要为了「让 R08 归零」去改这 8 处定位：改写法 = 绕过规则，不解决问题（教训 25）。
 | `self-test.sh` | 脚本存活自测：sh 语法 / py 编译 / 入口 / check --fast 冒烟 / git 就绪 / 一次性脚本残留 / .gitignore 覆盖 | 改脚本前后各跑一次，FAIL 即禁止提交 |
+| `git-bundle.sh` | git 历史冷备：`bundle create --all` → `bundle verify` 校验 → 只留最近 5 个 | 每次 commit 后、发布打包前（`sh bin/evo bundle`） |

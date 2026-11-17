@@ -11,11 +11,13 @@ QUIET=0
 
 PASS=0
 FAIL=0
+WARN=0
 FAILLIST=""
 
 ok() { PASS=$((PASS + 1)); [ "$QUIET" = "1" ] || printf 'ok    %s\n' "$*"; }
 bad() { FAIL=$((FAIL + 1)); FAILLIST="$FAILLIST
   - $*"; [ "$QUIET" = "1" ] || printf 'FAIL  %s\n' "$*"; }
+warn() { WARN=$((WARN + 1)); [ "$QUIET" = "1" ] || printf 'warn  %s\n' "$*"; }
 
 echo "=== EVO self-test.sh · $ROOT ==="
 
@@ -54,6 +56,25 @@ else
     bad "T3 bin/evo 缺失或 shebang 非 sh"
 fi
 if [ -f "$CMD/SHELLS.md" ]; then ok "T3 SHELLS.md 索引存在"; else bad "T3 SHELLS.md 缺失（脚本索引真源）"; fi
+# ---------- T3b dispatch 注册目标存在（防「注册了但指向不存在的文件」） ----------
+NAMES=$(awk '/^[ ]+self-test\|/{ln=$0; gsub(/^[ ]+/,"",ln); sub(/\)$/,"",ln); gsub(/\|/," ",ln); print ln; exit}' "$ROOT/bin/evo")
+if [ -z "$NAMES" ]; then
+    bad "T3b 无法解析 bin/evo dispatch 列表"
+else
+    miss=""
+    cnt=0
+    for _n in $NAMES; do
+        cnt=$((cnt + 1))
+        [ -f "$CMD/$_n.sh" ] || miss="$miss $_n"
+    done
+    if [ -z "$miss" ]; then ok "T3b dispatch $cnt 个目标全部存在"; else bad "T3b dispatch 缺脚本:$miss"; fi
+fi
+# 别名分支的字面量路径（exec sh data/cmd/xxx.sh）逐个核对
+miss2=""
+for _f in $(sed -n 's|.*\(data/cmd/[a-z0-9_-]*\.sh\).*|\1|p' "$ROOT/bin/evo" | sort -u); do
+    [ -f "$ROOT/$_f" ] || miss2="$miss2 $_f"
+done
+if [ -z "$miss2" ]; then ok "T3b 别名分支路径全部有效"; else bad "T3b 字面量路径不存在:$miss2"; fi
 
 # ---------- T4 只读冒烟：check --fast ----------
 STLOG=/tmp/.evo_selftest_check.log
@@ -77,7 +98,7 @@ if [ "$n" = "0" ]; then ok "T6 无一次性 .py 残留"; else bad "T6 一次性 
 # ---------- T7 运行期产物不得入库 ----------
 if [ -f "$ROOT/.gitignore" ]; then
     miss=""
-    for pat in 'data/heartbeat/' 'data/waters.md' '*.zip' 'data/.*.py'; do
+    for pat in 'data/heartbeat/' 'data/waters.md' '*.zip' 'data/.*.py' '*.bundle'; do
         grep -qF "$pat" "$ROOT/.gitignore" || miss="$miss $pat"
     done
     if [ -z "$miss" ]; then ok "T7 .gitignore 覆盖运行期产物"; else bad "T7 .gitignore 缺规则:$miss"; fi
@@ -85,9 +106,24 @@ else
     bad "T7 .gitignore 不存在"
 fi
 
+# ---------- T8 git bundle 冷备（proot rootfs 重建时 /home 下的 .git 会丢） ----------
+BUNDLE=$(ls -t "$ROOT"/data/backup/evo-git-*.bundle 2>/dev/null | head -1)
+if [ -z "$BUNDLE" ]; then
+    bad "T8 无 git bundle 冷备（跑 sh bin/evo bundle 生成）"
+elif ! git -C "$ROOT" bundle verify "$BUNDLE" >/dev/null 2>&1; then
+    bad "T8 bundle 损坏：$(basename "$BUNDLE")"
+else
+    ok "T8 bundle 可校验：$(basename "$BUNDLE")"
+    _h=$(git -C "$ROOT" rev-parse HEAD 2>/dev/null)
+    if [ -n "$_h" ] && git -C "$ROOT" bundle list-heads "$BUNDLE" 2>/dev/null | grep -q "$_h"; then
+        ok "T8 bundle 含 HEAD（未落后）"
+    else
+        warn "T8 bundle 落后 HEAD（跑 sh bin/evo bundle 刷新）"
+    fi
+fi
 # ---------- 汇总 ----------
 echo "---"
-echo "self-test: PASS=$PASS FAIL=$FAIL"
+echo "self-test: PASS=$PASS FAIL=$FAIL WARN=$WARN"
 if [ "$FAIL" -gt 0 ]; then
     printf '未通过项:%s\n' "$FAILLIST"
     exit 1
