@@ -16,6 +16,9 @@ data/*-1117.py
 *.bundle
 data/backup/*.zip
 
+# 本机备份目录（含真实账本快照 / 清理台账）——永不入库
+data/backup/
+
 # 系统垃圾
 .DS_Store
 Thumbs.db
