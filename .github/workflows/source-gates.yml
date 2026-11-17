@@ -116,8 +116,10 @@ jobs:
             ACT=$(echo "$OUT" | grep -E '^N=' | tail -1)
             IDX=$(wc -l < data/store/index.tsv 2>/dev/null || echo NA)
             JN=$(grep -c '^|' data/journal.md 2>/dev/null || echo NA)
-            FILES=$(ls data/store 2>/dev/null | tr '\n' ',')
-            echo "::error::DIAG idx_lines=$IDX journal_rows=$JN store=[$FILES] out1=[$(echo "$OUT" | head -3 | tr '\n' '~')] sync=[$(tr '\n' ' ' < /tmp/sync.log 2>/dev/null)] idx=[$(tr '\n' ' ' < /tmp/index.log 2>/dev/null)] $ACT"
+            AWKP=$(command -v awk 2>/dev/null || echo none)
+            AWKV=$(awk -W version 2>&1 | head -1)
+            IDX1=$(head -1 data/store/index.tsv 2>/dev/null | cut -c1-60)
+            echo "::error::DIAG2 idx_lines=$IDX $ACT awk=[$AWKP] awkver=[$AWKV] idx1=[$IDX1]"
             exit 1
           fi
 
