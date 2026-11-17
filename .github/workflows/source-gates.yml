@@ -103,8 +103,8 @@ jobs:
           set -eu
           cd "$RUNNER_TEMP/EVO-public"
           cp data/journal.seed.md data/journal.md
-          sh bin/evo store sync
-          sh bin/evo index build
+          sh bin/evo store sync   | tee /tmp/sync.log
+          sh bin/evo index build  | tee /tmp/index.log
 
       - name: 开箱 B · search-eval 断言（Top1=8/10）
         run: |
@@ -114,7 +114,10 @@ jobs:
           echo "$OUT" | tail -4
           if ! echo "$OUT" | grep -q 'Top1=8/10'; then
             ACT=$(echo "$OUT" | grep -E '^N=' | tail -1)
-            echo "::error::成绩漂移｜实际：${ACT:-<无 N= 行>}｜文档承诺：N=10 Top1=8/10 MRR=0.8500"
+            IDX=$(wc -l < data/store/index.tsv 2>/dev/null || echo NA)
+            JN=$(grep -c '^|' data/journal.md 2>/dev/null || echo NA)
+            FILES=$(ls data/store 2>/dev/null | tr '\n' ',')
+            echo "::error::DIAG idx_lines=$IDX journal_rows=$JN store=[$FILES] out1=[$(echo "$OUT" | head -3 | tr '\n' '~')] sync=[$(tr '\n' ' ' < /tmp/sync.log 2>/dev/null)] idx=[$(tr '\n' ' ' < /tmp/index.log 2>/dev/null)] $ACT"
             exit 1
           fi
 
