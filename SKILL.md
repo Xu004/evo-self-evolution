@@ -7,7 +7,7 @@ description: EVO · 自进化循环技能。任务前检索历史经验、任务
 
 > 版本变更史见 `CHANGELOG.md` / `VERSION_HISTORY.md`。本文件只承载常驻规则。
 
-> 本 Skill 定义的是**元流程**：如何从每个任务中学习。它不解决具体业务，而是保证"第二次做同类任务时比第一次更强"。
+> 本 Skill 是**元流程**：从任务中学习，不解决业务。
 
 **分卷不是可选阅读**——见 H24。
 
@@ -95,6 +95,7 @@ description: EVO · 自进化循环技能。任务前检索历史经验、任务
 | H24 | 任务进入 L1/L2/L3，或触发 REFLECT / EVOLVE / 整合 / 水位阶段 | 先按结构地图「何时必读」列打开对应 `refs/` 分卷，读完再执行该阶段动作；分卷与主干冲突时以主干 H 表为准 | journal 有 `run \| refs \| <分卷名>` 行；未读分卷就执行阶段动作 = 流程违规 | v1.0.1 |
 | H25 | 平台上下文总结参数视为外部固定条件：CHAT `enable_summary=true`、`summary_token_threshold=0.7`、`summary_message_count_threshold=16`、`enable_max_context_mode=true`（64→200）；**平台记忆整合优先，EVO 不改平台配置**（2026-11-17 实测锁定） | 单轮消息预算按 12 条设计：第 4 条消息前必须完成首批落盘（产物/参数/链 id/计数一律当条写文件，禁止留在推理里）；达 12 条仍未完结 → 当条输出「落盘清单 + 下轮重入点」即收尾，禁止硬扛到 16 条后靠记忆续 | 超过 16 条被总结后，本轮全部关键产物仍可从文件复述（零依赖上下文） | v1.0.2 |
 | H26 | 每轮进入（定时唤醒 / 被动补跑 / 跨对话续跑 / 压缩后重开） | 先跑重入协议四步重建状态，禁止凭「上文说过」开工：① `cat data/waters.md`（末 20 行）② `tail -5 $JOURNAL` ③ `sh data/cmd/chain.sh list` ④ `get_memory_by_title("时钟:autoDream")`；冲突时真源优先级 = 心跳文件 `data/heartbeat/<日期>` > 记忆条目 > 上下文（心跳文件平台整合动不到，条目只作镜像） | journal 有 `run \| reentry \| ok` 行 | v1.0.2 |
+| H27 | 宣告完成前 | `evo check` + `evo self-test` 双绿，否则只报未完成+FAIL清单 | 双绿 v✅ |
 
 **待公式化清单（1 条）：** H1——"是否违规"的判定仍是 LLM 判断，暂无完全公式化路径（验收已半公式化：grep 出数）。
 

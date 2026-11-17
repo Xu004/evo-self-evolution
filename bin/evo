@@ -14,6 +14,7 @@
 #   index stats        分域统计
 #   index check        结构 + 新鲜度校验（门禁 C12 复用）
 #   search "<词>"      加权检索（HIT n rc=0 / MISS rc=3）
+#   self-test         脚本存活自测（语法/入口/冒烟/git/残留，FAIL 非 0 退出）
 #   lint               表式账本校验（类型/空字段）
 
 set -u
@@ -56,7 +57,7 @@ case $CMD in
   # ---- v1.1 脚本收敛入口：evo <脚本名> [参数] ----
   # 统一入口，向后兼容（sh data/cmd/<名>.sh 仍可用）。脚本实现不变，只收口调用面。
   # 例：evo check --fast ／ evo pack ／ evo eval report ／ evo journal-add create X Y
-  check|pack|dist|eval|refactor|verify|enum_merge|rotate-journal|bridge-journal|plugin-lint|journal-lint|journal-add|journal-commit|route-cache|lexicon)
+  self-test|check|pack|dist|eval|refactor|verify|enum_merge|rotate-journal|bridge-journal|plugin-lint|journal-lint|journal-add|journal-commit|route-cache|lexicon)
     _s="data/cmd/$CMD.sh"
     [ -f "$_s" ] || { echo "无此脚本: $_s" >&2; exit 2; }
     exec sh "$_s" "$@"
