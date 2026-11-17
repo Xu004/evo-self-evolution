@@ -110,16 +110,17 @@ jobs:
         run: |
           set -eu
           cd "$RUNNER_TEMP/EVO-public"
+          # 项目口径 = mawk。CI 的 awk 在 Ubuntu26 起指向 gawk 5.3，
+          # 会把中文 2-gram 检索打到全 0 命中 → 这里把 mawk 放到 PATH 最前。
+          mkdir -p /tmp/awkfirst
+          ln -sf "$(command -v mawk)" /tmp/awkfirst/awk
+          export PATH="/tmp/awkfirst:$PATH"
+          echo "awk -> $(command -v awk) | $(awk -W version 2>&1 | head -1)"
           OUT=$(sh bin/evo search-eval example 2>&1 || true)
           echo "$OUT" | tail -4
           if ! echo "$OUT" | grep -q 'Top1=8/10'; then
             ACT=$(echo "$OUT" | grep -E '^N=' | tail -1)
-            IDX=$(wc -l < data/store/index.tsv 2>/dev/null || echo NA)
-            JN=$(grep -c '^|' data/journal.md 2>/dev/null || echo NA)
-            AWKP=$(command -v awk 2>/dev/null || echo none)
-            AWKV=$(awk -W version 2>&1 | head -1)
-            IDX1=$(head -1 data/store/index.tsv 2>/dev/null | cut -c1-60)
-            echo "::error::DIAG2 idx_lines=$IDX $ACT awk=[$AWKP] awkver=[$AWKV] idx1=[$IDX1]"
+            echo "::error::仍然漂移（mawk 已置于 PATH 首位）：$ACT"
             exit 1
           fi
 
